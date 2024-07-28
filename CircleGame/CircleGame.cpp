@@ -11,6 +11,7 @@
 #endif
 #define DARK_MODE 1
 #define EXPLODING_ORBS 1
+#define STREAK_MULT 1
 
 TTF_Font *font;
 
@@ -52,7 +53,7 @@ int drawstringcv(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color co
 	return dstrect.w;
 }
 
-void drawstringcen(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
+int drawstringcen(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
 	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
 	SDL_Rect dstrect;
 	dstrect.x = x - str->sur->w / 2;
@@ -60,6 +61,7 @@ void drawstringcen(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color 
 	dstrect.w = str->sur->w;
 	dstrect.h = str->sur->h;
 	SDL_RenderCopy(rend, str->tex, nullptr, &dstrect);
+	return dstrect.w / 2;
 }
 
 RendString streakStr;
@@ -85,6 +87,19 @@ int numidx(char c) {
 	return c - '0';
 }
 
+int measurenum(int num) {
+	char buf[256];
+	int c = snprintf(buf, 256, "%d", num);
+	int off = 0;
+	if (c > 255) {
+		c = 255;
+	}
+	for (int i = 0; i < c; ++i) {
+		off += numStrs[numidx(buf[i])].sur->w;
+	}
+	return off;
+}
+
 int drawnum(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 	char buf[256];
 	int c = snprintf(buf, 256, "%d", num);
@@ -106,7 +121,7 @@ int drawnumstr(SDL_Renderer *rend, const char *num, int c, int x, int y, SDL_Col
 	return off;
 }
 
-void drawnumcen(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
+int drawnumcen(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 	char buf[256];
 	int c = snprintf(buf, 256, "%d", num);
 	int off = 0;
@@ -121,6 +136,7 @@ void drawnumcen(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 	for (int i = 0; i < c; ++i) {
 		off += drawstringcv(rend, &numStrs[numidx(buf[i])], x + off, y, col);
 	}
+	return off;
 }
 
 void drawfloat(SDL_Renderer *rend, float num, int x, int y, SDL_Color col) {
@@ -281,40 +297,55 @@ struct Collisions {
 	struct Collision {
 		SDL_Point p;
 		float rem;
+		int amt;
 		bool operator ==(Collision *c) {
 			return this == c;
 		}
 	};
 	std::vector<Collision> collisions;
+	std::vector<Collision> streaks;
 	bool diddraw = false;
-	int framedrew = 0;
-	float streakrem = 0;
-	SDL_Point streakPos;
+	int frameamt = 0;
 
-	void add_collision(SDL_Point p) {
+	void add_collision(SDL_Point p, int amt) {
 		for (Collision &c : collisions) {
 			if (c.rem <= 0) {
 				c.p = p;
 				c.rem = 1.f;
+				c.amt = amt;
 				return;
 			}
 		}
 		Collision c;
 		c.p = p;
 		c.rem = 1.f;
+		c.amt = amt;
 		collisions.push_back(c);
 	}
 
-	void mark_streak(SDL_Point where) {
-		streakPos = where;
-		streakrem = 2.f;
+	void mark_streak(SDL_Point where, int num) {
+		for (Collision &c : streaks) {
+			if (c.rem <= 0) {
+				c.p = where;
+				c.rem = 2.f;
+				c.amt = num;
+				return;
+			}
+		}
+		Collision c;
+		c.p = where;
+		c.rem = 2.f;
+		c.amt = num;
+		streaks.push_back(c);
 	}
 
 	void process(float delta) {
 		for (Collision &c : collisions) {
 			c.rem -= delta;
 		}
-		streakrem -= delta;
+		for (Collision &c : streaks) {
+			c.rem -= delta;
+		}
 	}
 
 	unsigned char getopac(float lifetime) {
@@ -326,17 +357,24 @@ struct Collisions {
 
 	void draw(SDL_Renderer *rend) {
 		diddraw = false;
-		framedrew = 0;
+		frameamt = 0;
 		for (const Collision &c : collisions) {
 			if (c.rem <= 0)
 				continue;
-			drawnumcen(rend, 10, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(1 - c.rem)});
+			drawnumcen(rend, c.amt, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(1 - c.rem)});
 			diddraw = true;
-			++framedrew;
+			frameamt += c.amt;
 		}
 
-		if (streakrem > 0) {
-			drawstringcen(rend, &streakStr, streakPos.x, streakPos.y, SDL_Color{ 128, 0, 255, getopac(2 - streakrem)});
+		for (const Collision &c : streaks) {
+			if (c.rem <= 0)
+				continue;
+			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(2 - c.rem) };
+			int o1 = measurenum(c.amt) / 2;
+			int o2 = drawstringcen(rend, &streakStr, c.p.x - o1, c.p.y, col);
+#if STREAK_MULT
+			drawnum(rend, c.amt, c.p.x - o1 + o2, c.p.y - 10, col);
+#endif
 		}
 	}
 };
@@ -388,7 +426,8 @@ void run(SDL_Renderer *rend, bool *running) {
 	float score = 0.0f;
 	float timesincespawn = 0;
 	bool pb = false;
-	int streak = 0;
+	int streakn = 0;
+	int streakc = 0;
 	float timesinceshoot = time_until_shoot;
 #if ROPE
 	float mousedist = 0;
@@ -467,8 +506,10 @@ void run(SDL_Renderer *rend, bool *running) {
 				//fallers.push_back(f);
 			}
 
-			if (!collisions.diddraw)
-				streak = 0;
+			if (!collisions.diddraw) {
+				streakn = 0;
+				streakc = 0;
+			}
 		}
 
 		px += vx * delta;
@@ -518,11 +559,17 @@ void run(SDL_Renderer *rend, bool *running) {
 				faller.fall(delta);
 
 				if (faller.intersects(px, py)) {
-					score += 10;
-					++streak;
-					collisions.add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 });
-					if (streak == 4)
-						collisions.mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 });
+					++streakn;
+					int s = 10
+#if STREAK_MULT
+						* (1 + streakn / 4)
+#endif
+						;
+					score += s;
+					streakc += s;
+					collisions.add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, s);
+					if (streakn % 4 == 0)
+						collisions.mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, streakn / 4);
 					faller.begin_animate();
 				}
 			}
@@ -622,7 +669,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		int noff = drawnum(rend, score, 10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
 		if (collisions.diddraw) {
 			noff += drawnumstr(rend, "+", 1, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
-			drawnum(rend, streak * 10, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
+			drawnum(rend, streakc, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 		}
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
@@ -681,7 +728,11 @@ int SDL_main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	loadstring(&streakStr, rend, "Streak!");
+	loadstring(&streakStr, rend, "Streak!"
+#if STREAK_MULT
+		" x"
+#endif
+	);
 	initnums(rend);
 
 	bool running = true;
