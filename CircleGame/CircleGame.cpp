@@ -10,6 +10,7 @@
 #define INSANE_LOOP 1
 #endif
 #define DARK_MODE 1
+#define EXPLODING_ORBS 1
 
 TTF_Font *font;
 
@@ -176,20 +177,23 @@ void drawarrow(SDL_Renderer *rend, int x1, int y1, int x2, int y2, float min) {
 	SDL_RenderDrawLine(rend, x2, y2, x2 + cosf(a2) * d, y2 + sinf(a2) * d);
 }
 
-void drawocto(SDL_Renderer *rend, int r, int x, int y) {
+void drawocto2(SDL_Renderer *rend, int r, int x, int y, int explode) {
 	float side = r * sinf(M_PI_2);
 	int side2 = side / 2.f;
 	SDL_Point points[9];
-	points[0] = { x - side2, y - r };
-	points[1] = { x + side2, y - r };
-	points[2] = { x + r, y - side2 };
-	points[3] = { x + r, y + side2 };
-	points[4] = { x + side2, y + r };
-	points[5] = { x - side2, y + r };
-	points[6] = { x - r, y + side2 };
-	points[7] = { x - r, y - side2 };
-	points[8] = { x - side2, y - r };
-	SDL_RenderDrawLines(rend, points, 9);
+	
+	SDL_RenderDrawLine(rend, x - side2, y - r - explode, x + side2, y - r - explode);
+	SDL_RenderDrawLine(rend, x + side2 + explode, y - r - explode, x + r + explode, y - side2 - explode);
+	SDL_RenderDrawLine(rend, x + r + explode, y - side2, x + r + explode, y + side2);
+	SDL_RenderDrawLine(rend, x + r + explode, y + side2 + explode, x + side2 + explode, y + r + explode);
+	SDL_RenderDrawLine(rend, x + side2, y + r + explode, x - side2, y + r + explode);
+	SDL_RenderDrawLine(rend, x - side2 - explode, y + r + explode, x - r - explode, y + side2 + explode);
+	SDL_RenderDrawLine(rend, x - r - explode, y + side2, x - r - explode, y - side2);
+	SDL_RenderDrawLine(rend, x - r - explode, y - side2 - explode, x - side2 - explode, y - r - explode);
+}
+
+void drawocto(SDL_Renderer *rend, int r, int x, int y) {
+	drawocto2(rend, r, x, y, 0);
 }
 
 constexpr float min_shoot_dist = 150;
@@ -238,7 +242,13 @@ struct Faller {
 
 	void animate(float delta) {
 		animtime += delta;
-		if (animtime >= 0.1f) {
+		if (animtime >=
+#if EXPLODING_ORBS
+			0.3f
+#else
+			0.1f
+#endif
+			) {
 			respawn();
 		}
 	}
@@ -251,7 +261,11 @@ struct Faller {
 	}
 
 	void draw(SDL_Renderer *rend) const {
+#if EXPLODING_ORBS
+		drawocto2(rend, 5, x, y, animating ? animtime * animtime * 30 : 0);
+#else
 		drawocto(rend, animating ? 5 + animtime * animtime * 15 : 5, x, y);
+#endif
 	}
 
 	bool intersects(int px, int py) const {
@@ -494,7 +508,7 @@ void run(SDL_Renderer *rend, bool *running) {
 #if ROPE
 		if (moved && dragging) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-			mousedist += delta * 80;
+			mousedist += delta * 80 * strength;
 		}
 #endif
 
