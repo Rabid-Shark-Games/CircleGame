@@ -3,12 +3,13 @@
 #include <vector>
 
 #define WALLS 0
-#define ROPE 0
+#define ROPE 1
 #define DEBUG_VEL 0
 #define DEBUG_VARS 0
 #if !ROPE
 #define INSANE_LOOP 1
 #endif
+#define DARK_MODE 1
 
 TTF_Font *font;
 
@@ -200,8 +201,8 @@ void shoot(float *vx, float *vy, int px, int py, int mx, int my, float strength)
 	float d = sqrtf(dx * dx + dy * dy);
 	dx /= d;
 	dy /= d;
-	if (d < min_shoot_dist)
-		d = min_shoot_dist;
+	if (d < min_shoot_dist * strength)
+		d = min_shoot_dist * strength;
 	*vx = dx * d * strength * 1.4f;
 	*vy = dy * d * strength * 1.8f;
 }
@@ -518,6 +519,9 @@ void run(SDL_Renderer *rend, bool *running) {
 			dark += 128;
 			if (dark > 255)
 				dark = 255;
+#if DARK_MODE
+			dark = 255 - dark;
+#endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
 		else if (py > 600 - 255) {
@@ -525,10 +529,17 @@ void run(SDL_Renderer *rend, bool *running) {
 			dark += 128;
 			if (dark > 255)
 				dark = 255;
+#if DARK_MODE
+			dark = 255 - dark;
+#endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
 		else
+#if DARK_MODE
+			SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+#else
 			SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+#endif
 		SDL_RenderClear(rend);
 
 		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
@@ -575,8 +586,8 @@ void run(SDL_Renderer *rend, bool *running) {
 			else {
 				drawarrow(rend, px, py, mx, my, min_shoot_dist);
 #if !WALLS
-				drawarrow(rend, px - 800, py, mx - 800, my, min_shoot_dist);
-				drawarrow(rend, px + 800, py, mx + 800, my, min_shoot_dist);
+				drawarrow(rend, px - 800, py, mx - 800, my, min_shoot_dist * strength);
+				drawarrow(rend, px + 800, py, mx + 800, my, min_shoot_dist * strength);
 #endif
 			}
 		}
@@ -584,7 +595,13 @@ void run(SDL_Renderer *rend, bool *running) {
 		collisions.draw(rend);
 
 		if (timesinceshoot < time_until_shoot) {
-			drawfloatcen(rend, time_until_shoot - timesinceshoot, px, py + 30, SDL_Color{ 0, 0, 0, 255 });
+			drawnumcen(rend, (time_until_shoot - timesinceshoot) * 100, px, py + 30, SDL_Color{
+#if DARK_MODE
+			255, 255, 255,
+#else
+			0, 0, 0,
+#endif
+				255 });
 		}
 
 		drawnum(rend, highscore, 10, 10, SDL_Color{ 0, 255, 0, 255 });
@@ -594,9 +611,21 @@ void run(SDL_Renderer *rend, bool *running) {
 			drawnum(rend, streak * 10, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 		}
 #if DEBUG_VARS
-		drawfloat(rend, strength, 10, 50, SDL_Color{ 0, 0, 0, 255 });
+		drawfloat(rend, strength, 10, 50, SDL_Color{
+#if DARK_MODE
+			255, 255, 255,
+#else
+			0, 0, 0,
+#endif
+			255 });
 		if (wallreimburse > 0)
-			drawfloat(rend, wallreimburse, 10, 70, SDL_Color{ 0, 0, 0, 255 });
+			drawfloat(rend, wallreimburse, 10, 70, SDL_Color{
+#if DARK_MODE
+			255, 255, 255,
+#else
+			0, 0, 0,
+#endif
+			255 });
 #endif
 
 		SDL_RenderPresent(rend);
