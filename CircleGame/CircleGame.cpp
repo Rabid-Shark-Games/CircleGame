@@ -34,6 +34,7 @@ void destroystring(RendString *str) {
 
 int drawstring(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
 	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
+	SDL_SetTextureAlphaMod(str->tex, col.a);
 	SDL_Rect dstrect;
 	dstrect.x = x;
 	dstrect.y = y;
@@ -45,6 +46,7 @@ int drawstring(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col)
 
 int drawstringcv(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
 	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
+	SDL_SetTextureAlphaMod(str->tex, col.a);
 	SDL_Rect dstrect;
 	dstrect.x = x;
 	dstrect.y = y - str->sur->h / 2;
@@ -56,6 +58,7 @@ int drawstringcv(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color co
 
 int drawstringcen(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
 	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
+	SDL_SetTextureAlphaMod(str->tex, col.a);
 	SDL_Rect dstrect;
 	dstrect.x = x - str->sur->w / 2;
 	dstrect.y = y - str->sur->h / 2;
@@ -328,7 +331,7 @@ struct Collisions {
 		for (Collision &c : streaks) {
 			if (c.rem <= 0) {
 				c.p = where;
-				c.rem = 2.f;
+				c.rem = sqrtf(num) * 2;
 				c.amt = num;
 				return;
 			}
@@ -362,7 +365,7 @@ struct Collisions {
 		for (const Collision &c : collisions) {
 			if (c.rem <= 0)
 				continue;
-			drawnumcen(rend, c.amt, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(1 - c.rem)});
+			drawnumcen(rend, c.amt, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(c.rem)});
 			diddraw = true;
 			frameamt += c.amt;
 		}
@@ -370,7 +373,7 @@ struct Collisions {
 		for (const Collision &c : streaks) {
 			if (c.rem <= 0)
 				continue;
-			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(2 - c.rem) };
+			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(c.rem) };
 			int o1 = measurenum(c.amt) / 2;
 			int o2 = drawstringcen(rend, &streakStr, c.p.x - o1, c.p.y, col);
 #if STREAK_MULT
@@ -485,7 +488,7 @@ void run(SDL_Renderer *rend, bool *running) {
 					dragging = false;
 					moved = true;
 					if (timesinceshoot >= time_until_shoot) {
-						shoot(&vx, &vy, px, py, mx, my, strength);
+						shoot(&vx, &vy, px, py, mx, my, strength * (1 + sqrtf(streakn) / 4));
 						timesinceshoot = 0;
 					}
 				}
@@ -567,7 +570,7 @@ void run(SDL_Renderer *rend, bool *running) {
 #if ROPE
 		if (moved && dragging) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-			mousedist += delta * 80 * strength;
+			mousedist += delta * 80 * strength * (1 + sqrtf(streakn) / 4);
 		}
 #endif
 
@@ -600,6 +603,9 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
+			dark += streakn * 5;
+#else
+			dark -= streakn * 5;
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
@@ -610,14 +616,17 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
+			dark += streakn * 5;
+#else
+			dark -= streakn * 5;
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
 		else
 #if DARK_MODE
-			SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(rend, streakn * 5, streakn * 5, streakn * 5, 255);
 #else
-			SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+			SDL_SetRenderDrawColor(rend, 255 - streakn * 5, 255 - streakn * 5, 255 - streakn * 5, 255);
 #endif
 		SDL_RenderClear(rend);
 
@@ -684,7 +693,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		}
 
 #if SCORE_COUNTING
-		highscorecount += delta * 90;
+		highscorecount += delta * moved ? 90 : 300;
 		scorecount += delta * 90;
 		streakccount += delta * 90;
 		if (highscorecount > highscore)
