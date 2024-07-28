@@ -3,9 +3,12 @@
 #include <vector>
 
 #define WALLS 0
-#define ROPE 1
+#define ROPE 0
 #define DEBUG_VEL 0
 #define DEBUG_VARS 0
+#if !ROPE
+#define INSANE_LOOP 1
+#endif
 
 TTF_Font *font;
 
@@ -469,7 +472,7 @@ void run(SDL_Renderer *rend, bool *running) {
 			wall = true;
 		}
 #else
-#if ROPE
+#if ROPE || INSANE_LOOP
 		if (!dragging) {
 #endif
 			if (px < 0) {
@@ -478,7 +481,7 @@ void run(SDL_Renderer *rend, bool *running) {
 			if (px > 800) {
 				px -= 800;
 			}
-#if ROPE
+#if ROPE || INSANE_LOOP
 		}
 #endif
 #endif
