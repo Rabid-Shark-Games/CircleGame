@@ -12,6 +12,7 @@
 #define DARK_MODE 1
 #define EXPLODING_ORBS 1
 #define STREAK_MULT 1
+#define SCORE_COUNTING 1
 
 TTF_Font *font;
 
@@ -408,6 +409,9 @@ void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my, float 
 }
 
 float highscore = 0.0f;
+#if SCORE_COUNTING
+float highscorecount = 0.0f;
+#endif
 
 void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
@@ -424,6 +428,11 @@ void run(SDL_Renderer *rend, bool *running) {
 	float strength = 1;
 	float wallreimburse = 2.f / 3.f;
 	float score = 0.0f;
+#if SCORE_COUNTING
+	float scorecount = 0.0f;
+	float streakccount = 0.0f;
+	float streaktimerem = 0.0f;
+#endif
 	float timesincespawn = 0;
 	bool pb = false;
 	int streakn = 0;
@@ -506,7 +515,16 @@ void run(SDL_Renderer *rend, bool *running) {
 				//fallers.push_back(f);
 			}
 
+#if SCORE_COUNTING
+			streaktimerem -= delta;
+			if (collisions.diddraw || streakc != streakccount) {
+				streaktimerem = 1.f;
+			}
+
+			if (streaktimerem <= 0) {
+#else
 			if (!collisions.diddraw) {
+#endif
 				streakn = 0;
 				streakc = 0;
 			}
@@ -665,11 +683,45 @@ void run(SDL_Renderer *rend, bool *running) {
 				255 });
 		}
 
-		drawnum(rend, highscore, 10, 10, SDL_Color{ 0, 255, 0, 255 });
-		int noff = drawnum(rend, score, 10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
+#if SCORE_COUNTING
+		highscorecount += delta * 90;
+		scorecount += delta * 90;
+		streakccount += delta * 90;
+		if (highscorecount > highscore)
+			highscorecount = highscore;
+		if (scorecount > score)
+			scorecount = score;
+		if (streakccount > streakc)
+			streakccount = streakc;
+#endif
+
+		drawnum(rend,
+#if SCORE_COUNTING
+			highscorecount,
+#else
+			highscore,
+#endif
+			10, 10, SDL_Color{ 0, 255, 0, 255 });
+		int noff = drawnum(rend,
+#if SCORE_COUNTING
+			scorecount,
+#else
+			score,
+#endif
+			10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
+#if SCORE_COUNTING
+		if (streaktimerem > 0.0f) {
+#else
 		if (collisions.diddraw) {
+#endif
 			noff += drawnumstr(rend, "+", 1, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
-			drawnum(rend, streakc, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
+			drawnum(rend,
+#if SCORE_COUNTING
+				streakccount,
+#else
+				streakc,
+#endif
+				20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 		}
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
