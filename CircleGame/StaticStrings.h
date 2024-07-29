@@ -13,4 +13,6 @@ namespace Str {
 	extern StaticString ropeUpgradeDesc;
 	extern StaticString upgradeHint;
 	extern StaticString exit;
+	extern StaticString fallerSpeedUpgrade;
+	extern StaticString fallerSpeedUpgradeDesc;
 }

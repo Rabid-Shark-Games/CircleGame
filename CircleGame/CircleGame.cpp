@@ -115,7 +115,7 @@ static void run(SDL_Renderer *rend, bool *running) {
 
 			if (p.moved) {
 				collisions.process(t.getDelta());
-				fallers.process(t.getDelta(), p.px, p.py, s, collisions);
+				fallers.process(t.getDelta(), p.px, p.py, s, collisions, u);
 			}
 		}
 

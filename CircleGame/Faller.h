@@ -2,10 +2,10 @@
 
 #include <vector>
 
-#include "Score.h"
-#include "Collisions.h"
-
+struct Score;
 struct SDL_Renderer;
+struct Upgrades;
+class Collisions;
 
 struct Faller {
 	float x = 0;
@@ -15,7 +15,7 @@ struct Faller {
 	bool animating = false;
 	float animtime = 0;
 
-	void fall(float delta);
+	void fall(float delta, float mult);
 
 	void begin_animate();
 
@@ -32,7 +32,7 @@ class Fallers {
 public:
 	Fallers();
 
-	void process(float delta, int px, int py, Score &s, Collisions &collisions);
+	void process(float delta, int px, int py, Score &s, Collisions &collisions, const Upgrades &u);
 	void draw(SDL_Renderer *rend);
 private:
 	std::vector<Faller> _fallers;

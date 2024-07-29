@@ -88,6 +88,38 @@ static int ropeCost(int ropelvl) {
 	return (1 + ropelvl * ropelvl * ropelvl) * 20;
 }
 
+static void drawGraphicInfo(SDL_Renderer *rend, Mouse m, int x, int y, const Score &s, int cost, int level, bool maxLevel, RendString *title, RendString *desc) {
+	bool affordable = s.score >= cost;
+	drawGraphicOutline(rend, x, y, m, affordable);
+	drawGraphicTitle(rend, x, y, title, m, cost, affordable);
+	drawGraphicLevel(rend, x, y, level, maxLevel, m, affordable);
+	drawGraphicDescription(rend, x, y, desc, m);
+}
+
+static void drawFSGraphic(SDL_Renderer *rend, int x, int y) {
+	SDL_SetRenderDrawColor(rend, 0, 255, 0, 100);
+	drawOctagon(rend, 16, x + 64, y + 64 - 16);
+	drawOctagon(rend, 16, x + 64 + 42, y + 64 - 16 - 24);
+	drawOctagon(rend, 16, x + 64 - 42, y + 64 - 16 + 24);
+	SDL_SetRenderDrawColor(rend, 0, 255, 0, 150);
+	drawOctagon(rend, 16, x + 64, y + 64 - 8);
+	drawOctagon(rend, 16, x + 64 + 42, y + 64 - 8 - 24);
+	drawOctagon(rend, 16, x + 64 - 42, y + 64 - 8 + 24);
+	SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
+	drawOctagon(rend, 16, x + 64, y + 64);
+	drawOctagon(rend, 16, x + 64 + 42, y + 64 - 24);
+	drawOctagon(rend, 16, x + 64 - 42, y + 64 + 24);
+}
+
+static int fsCost(int level) {
+	int l4 = level * level * level * level;
+	return 30 * (1 + l4);
+}
+
+static int fsMax(const Upgrades &u) {
+	return u.fsmult <= 0.4f;
+}
+
 void Upgrades::drawMenu(SDL_Renderer *rend, Mouse m, Score *s)
 {
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
@@ -97,23 +129,42 @@ void Upgrades::drawMenu(SDL_Renderer *rend, Mouse m, Score *s)
 	Str::upgrade.drawcen(rend, 400, 30, SDL_Color{ 255, 255, 255, 255 });
 
 	bool ropeAffordable = s->score >= ropeCost(ropelvl);
-	drawGraphicOutline(rend, menuCenX, menuCenY, m, ropeAffordable);
-	drawRopeGraphic(rend, menuCenX, menuCenY);
-	drawGraphicTitle(rend, menuCenX, menuCenY, &Str::ropeUpgrade, m, ropeCost(ropelvl), ropeAffordable);
-	drawGraphicLevel(rend, menuCenX, menuCenY, ropelvl, ropeMax(*this), m, ropeAffordable);
-	drawGraphicDescription(rend, menuCenX, menuCenY, &Str::ropeUpgradeDesc, m);
+
+	drawGraphicInfo(
+		rend,
+		m,
+		menuCenX - 120, menuCenY,
+		*s, ropeCost(ropelvl), ropelvl, ropeMax(*this),
+		&Str::ropeUpgrade, &Str::ropeUpgradeDesc);
+	drawRopeGraphic(rend, menuCenX - 120, menuCenY);
+
+	drawGraphicInfo(
+		rend,
+		m,
+		menuCenX + 120, menuCenY,
+		*s, fsCost(fslvl), fslvl, fsMax(*this),
+		&Str::fallerSpeedUpgrade, &Str::fallerSpeedUpgradeDesc);
+	drawFSGraphic(rend, menuCenX + 120, menuCenY);
 
 	drawExitText(rend, m);
 }
 
 void Upgrades::mouseUp(Mouse m, Score *s)
 {
-	if (isMouseHovering(m, menuCenX, menuCenY)) {
-		if (s->score < ropeCost(ropelvl))
+	if (isMouseHovering(m, menuCenX - 120, menuCenY)) {
+		if (ropeMax(*this) || s->score < ropeCost(ropelvl))
 			return;
 		s->score -= ropeCost(ropelvl);
 		ropelvl++;
 		ropemult -= 0.1f;
+		return;
+	}
+	if (isMouseHovering(m, menuCenX + 120, menuCenY)) {
+		if (fsMax(*this) || s->score < fsCost(fslvl))
+			return;
+		s->score -= fsCost(fslvl);
+		fslvl++;
+		fsmult -= 0.1f;
 		return;
 	}
 	if (isMouseHovering(m, (800 - 60) / 2, 600 - 40, 60, 20)) {

@@ -10,6 +10,8 @@ struct Score;
 struct Upgrades {
 	float ropemult = 1.0f;
 	int ropelvl = 0;
+	float fsmult = 1.0f;
+	int fslvl = 0;
 	bool menuopen = false;
 
 	void drawMenu(SDL_Renderer *rend, Mouse m, Score *s);

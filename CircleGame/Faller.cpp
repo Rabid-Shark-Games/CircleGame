@@ -3,8 +3,11 @@
 #include <SDL2/SDL.h>
 #include "Constants.h"
 #include "DrawUtil.h"
+#include "Upgrade.h"
+#include "Score.h"
+#include "Collisions.h"
 
-void Faller::fall(float delta) {
+void Faller::fall(float delta, float mult) {
 	if (animating) {
 		animate(delta);
 		return;
@@ -14,7 +17,7 @@ void Faller::fall(float delta) {
 		return;
 	}
 	v += 60.f * delta;
-	y += v * delta;
+	y += v * delta * mult;
 
 	if (y > 600 + 10)
 		respawn();
@@ -63,9 +66,9 @@ Fallers::Fallers() {
 	}
 }
 
-void Fallers::process(float delta, int px, int py, Score &s, Collisions &collisions) {
+void Fallers::process(float delta, int px, int py, Score &s, Collisions &collisions, const Upgrades &u) {
 	for (Faller &faller : _fallers) {
-		faller.fall(delta);
+		faller.fall(delta, u.fsmult);
 
 		if (faller.intersects(px, py)) {
 			int pts = s.countHit();
