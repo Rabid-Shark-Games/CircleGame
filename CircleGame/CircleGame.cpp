@@ -250,7 +250,6 @@ void run(SDL_Renderer *rend, bool *running) {
 	float scorecount = 0.0f;
 	float streakccount = 0.0f;
 	float streaktimerem = 0.0f;
-	float timesincespawn = 0;
 	bool pb = false;
 	int streakn = 0;
 	int streakc = 0;
@@ -314,14 +313,6 @@ void run(SDL_Renderer *rend, bool *running) {
 			if (score > highscore) {
 				pb = true;
 				highscore = score;
-			}
-
-			timesincespawn += t.getDelta();
-			if (timesincespawn > 5) {
-				timesincespawn -= 5;
-				//Faller f;
-				//f.respawn();
-				//fallers.push_back(f);
 			}
 
 			streaktimerem -= t.getDelta();
