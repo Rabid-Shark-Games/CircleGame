@@ -1,28 +1,29 @@
 #pragma once
 
-#include <SDL2/SDL.h>
 #include <vector>
 
-struct Collisions {
-	struct Collision {
-		SDL_Point p;
-		float rem;
-		int amt;
-		bool operator ==(Collision *c) {
-			return this == c;
-		}
-	};
-	std::vector<Collision> collisions;
-	std::vector<Collision> streaks;
-	bool diddraw = false;
+struct SDL_Renderer;
 
-	void add_collision(SDL_Point p, int amt);
+struct Collision {
+	int x, y;
+	float rem;
+	int amt;
+	bool operator ==(Collision *c) {
+		return this == c;
+	}
+};
 
-	void mark_streak(SDL_Point where, int num);
+class Collisions {
+public:
+	void addCollisionText(int x, int y, int amt);
+	void addStreakText(int x, int y, int num);
 
 	void process(float delta);
-
-	unsigned char getopac(float lifetime);
-
 	void draw(SDL_Renderer *rend);
+
+	bool didDrawCollisions() const;
+private:
+	std::vector<Collision> _collisions;
+	std::vector<Collision> _streaks;
+	bool _diddraw = false;
 };

@@ -13,7 +13,7 @@ void Score::tick(float delta, const Collisions &collisions)
 	}
 
 	streaktimerem -= delta;
-	if (collisions.diddraw || streakc != streakccount) {
+	if (collisions.didDrawCollisions() || streakc != streakccount) {
 		streaktimerem = 1.f;
 	}
 

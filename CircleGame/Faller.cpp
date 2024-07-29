@@ -68,9 +68,9 @@ void Fallers::process(float delta, int px, int py, Score *s, Collisions *collisi
 
 		if (faller.intersects(px, py)) {
 			int pts = s->countHit();
-			collisions->add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, pts);
+			collisions->addCollisionText(faller.x, faller.y + 20, pts);
 			if (s->wasStreakHit())
-				collisions->mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, s->streakMult());
+				collisions->addStreakText(faller.x, faller.y + 40, s->streakMult());
 			faller.begin_animate();
 		}
 	}
