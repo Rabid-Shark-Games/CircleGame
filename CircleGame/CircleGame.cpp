@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "DrawUtil.h"
 #include "Faller.h"
+#include "Upgrade.h"
 
 static void setbgcolor(SDL_Renderer *rend, Player *p, Score *s) {
 	if (p->py < 255) {
@@ -61,6 +62,7 @@ static void run(SDL_Renderer *rend, bool *running) {
 	Score s;
 	Fallers fallers;
 	Collisions collisions;
+	Upgrades u;
 	while (*running) {
 		while (SDL_PollEvent(&ev)) {
 			switch (ev.type) {
@@ -75,6 +77,8 @@ static void run(SDL_Renderer *rend, bool *running) {
 				m.setXY(ev.motion.x, ev.motion.y);
 				break;
 			case SDL_MOUSEBUTTONDOWN:
+				if (u.menuopen)
+					break;
 				if (ev.button.button == SDL_BUTTON_LEFT) {
 					m.setXY(ev.button.x, ev.button.y);
 					m.dragging = true;
@@ -82,27 +86,37 @@ static void run(SDL_Renderer *rend, bool *running) {
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
+				if (u.menuopen) {
+					u.mouseUp(m, &s);
+					break;
+				}
 				if (ev.button.button == SDL_BUTTON_LEFT) {
 					m.dragging = false;
 					p.tryShoot(m, strength * s.streakStrengthMult());
 				}
+				break;
+			case SDL_KEYDOWN:
+				if (!u.menuopen && ev.key.keysym.sym == SDLK_b)
+					u.openMenu();
 				break;
 			}
 		}
 
 		t.tick();
 
-		if (p.moved) {
-			strength += 0.02f * t.getDelta();
-			s.tick(t.getDelta(), collisions);
-		}
+		if (!u.menuopen) {
+			if (p.moved) {
+				strength += 0.01f * t.getDelta();
+				s.tick(t.getDelta(), collisions);
+			}
 
-		if (p.tick(m, t.getDelta(), strength * s.streakStrengthMult()))
-			return;
+			if (p.tick(m, t.getDelta(), strength * s.streakStrengthMult(), &u))
+				return;
 
-		if (p.moved) {
-			collisions.process(t.getDelta());
-			fallers.process(t.getDelta(), p.px, p.py, &s, &collisions);
+			if (p.moved) {
+				collisions.process(t.getDelta());
+				fallers.process(t.getDelta(), p.px, p.py, &s, &collisions);
+			}
 		}
 
 		setbgcolor(rend, &p, &s);
@@ -114,10 +128,21 @@ static void run(SDL_Renderer *rend, bool *running) {
 
 		collisions.draw(rend);
 
-		s.tickCounters(t.getDelta(), p.moved);
+		u.drawMenuHint(rend);
+		if (u.menuopen)
+			u.drawMenu(rend, m, &s);
+
+		s.tickCounters(t.getDelta(), p.moved && !u.menuopen);
 		s.draw(rend);
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
+#if DARK_MODE
+			255, 255, 255,
+#else
+			0, 0, 0,
+#endif
+			255 });
+		drawfloat(rend, strength * s.streakStrengthMult(), 10, 70, SDL_Color{
 #if DARK_MODE
 			255, 255, 255,
 #else

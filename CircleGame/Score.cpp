@@ -26,14 +26,22 @@ void Score::tick(float delta, const Collisions &collisions)
 void Score::tickCounters(float delta, bool moved)
 {
 	highscorecount += delta * (moved ? 90 : 300);
-	scorecount += delta * 90;
-	streakccount += delta * 90;
+	streakccount += delta * ((streakc - streakccount > 300) ? 140 : 90);
 	if (highscorecount > highscore)
 		highscorecount = highscore;
-	if (scorecount > score)
-		scorecount = score;
 	if (streakccount > streakc)
 		streakccount = streakc;
+	
+	if (score > scorecount) {
+		scorecount += delta * ((score - scorecount > 300) ? 140 : 90);
+		if (scorecount > score)
+			scorecount = score;
+	}
+	else if (score < scorecount) {
+		scorecount -= delta * ((scorecount - score > 30) ? 300 : 20);
+		if (scorecount < score)
+			scorecount = score;
+	}
 }
 
 float Score::streakStrengthMult() const

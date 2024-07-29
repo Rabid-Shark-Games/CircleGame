@@ -4,6 +4,7 @@
 
 #include "DrawUtil.h"
 #include "NumberStrings.h"
+#include "Upgrade.h"
 
 void Player::startGrab(Mouse m)
 {
@@ -20,6 +21,8 @@ static void shoot(float *vx, float *vy, int px, int py, int mx, int my, float st
 	dy /= d;
 	if (d < min_shoot_dist * strength)
 		d = min_shoot_dist * strength;
+	if (d > 1000)
+		d = 1000;
 	*vx = dx * d * strength * 1.4f;
 	*vy = dy * d * strength * 1.8f;
 }
@@ -61,7 +64,7 @@ static void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my,
 	}
 }
 
-bool Player::tick(Mouse m, float delta, float strength)
+bool Player::tick(Mouse m, float delta, float strength, Upgrades *u)
 {
 	if (moved) {
 		timesinceshoot += delta;
@@ -84,7 +87,7 @@ bool Player::tick(Mouse m, float delta, float strength)
 
 	if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
 		calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-		mousedist += delta * 80 * strength;
+		mousedist += delta * 80 * strength * u->ropemult;
 	}
 
 	return false;
