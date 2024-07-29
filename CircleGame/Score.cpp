@@ -23,13 +23,18 @@ void Score::tick(float delta, const Collisions &collisions)
 	}
 }
 
-static void tickHighScoreCounter(float delta, bool moved, float &highscorecount, float &highscore) {
-	if (highscorecount == highscore)
+static void tickCounter(float delta, bool moved, float &count, float real) {
+	if (count == real)
 		return;
 
-	float speed = 90;
+	float diff = real - count;
+	int inv = 1;
+	if (diff < 0) {
+		diff = -diff;
+		inv = -1;
+	}
 	
-	float diff = highscore - highscorecount;
+	float speed = 90;
 	if (diff > 1000)
 		speed = 600;
 	else if (diff > 300)
@@ -38,28 +43,18 @@ static void tickHighScoreCounter(float delta, bool moved, float &highscorecount,
 	if (!moved)
 		speed *= 2;
 
-	highscorecount += speed * delta;
-	if (highscorecount > highscore)
-		highscorecount = highscore;
+	count += speed * delta * inv;
+	if (inv < 0 && count < real)
+		count = real;
+	else if (inv > 0 && count > real)
+		count = real;
 }
 
 void Score::tickCounters(float delta, bool moved)
 {
-	tickHighScoreCounter(delta, moved, highscorecount, highscore);
-	streakccount += delta * ((streakc - streakccount > 300) ? 140 : 90);
-	if (streakccount > streakc)
-		streakccount = streakc;
-	
-	if (score > scorecount) {
-		scorecount += delta * ((score - scorecount > 300) ? 140 : 90) * (moved ? 1 : 4);
-		if (scorecount > score)
-			scorecount = score;
-	}
-	else if (score < scorecount) {
-		scorecount -= delta * ((scorecount - score > 30) ? 300 : 20) * (moved ? 1 : 4);
-		if (scorecount < score)
-			scorecount = score;
-	}
+	tickCounter(delta, moved, highscorecount, highscore);
+	tickCounter(delta, moved, scorecount, score);
+	tickCounter(delta, moved, streakccount, streakc);
 }
 
 float Score::streakStrengthMult() const
