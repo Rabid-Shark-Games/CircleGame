@@ -6,4 +6,5 @@ struct Mouse {
 	bool dragging = false;
 
 	float getDistance(int x, int y);
+	void setXY(int x, int y);
 };

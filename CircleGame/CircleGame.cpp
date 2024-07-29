@@ -72,13 +72,11 @@ static void run(SDL_Renderer *rend, bool *running) {
 				}
 				break;
 			case SDL_MOUSEMOTION:
-				m.x = ev.motion.x;
-				m.y = ev.motion.y;
+				m.setXY(ev.motion.x, ev.motion.y);
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				if (ev.button.button == SDL_BUTTON_LEFT) {
-					m.x = ev.button.x;
-					m.y = ev.button.y;
+					m.setXY(ev.button.x, ev.button.y);
 					m.dragging = true;
 					p.startGrab(m);
 				}
