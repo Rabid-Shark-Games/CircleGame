@@ -96,13 +96,13 @@ bool Player::tick(Mouse m, float delta, float strength, Upgrades *u)
 void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 {
 	SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-	drawocto(rend, 20, px, py);
-	drawocto(rend, 20, px - 800, py);
-	drawocto(rend, 20, px + 800, py);
+	drawOctagon(rend, 20, px, py);
+	drawOctagon(rend, 20, px - 800, py);
+	drawOctagon(rend, 20, px + 800, py);
 
 	if (moved && m.dragging) {
 		SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < TIME_UNTIL_SHOOT ? 128 : 255, 255);
-		drawocto(rend, 10, gcx, gcy);
+		drawOctagon(rend, 10, gcx, gcy);
 
 		SDL_RenderDrawLine(rend, px, py, gcx, gcy);
 		SDL_RenderDrawLine(rend, px - 800, py, gcx - 800, gcy);
@@ -114,7 +114,7 @@ void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 #if COMP_DEBUG_VEL
 	SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 
-	drawarrow(rend, px, py, px + vx, py + vy, 0);
+	drawArrow(rend, px, py, px + vx, py + vy, 0);
 
 	SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 #endif
@@ -127,9 +127,9 @@ void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 			mousedist = m.getDistance(px, py);
 		}
 		else {
-			drawarrow(rend, px, py, m.x, m.y, MIN_SHOOT_DIST);
-			drawarrow(rend, px - 800, py, m.x - 800, m.y, MIN_SHOOT_DIST * strength);
-			drawarrow(rend, px + 800, py, m.x + 800, m.y, MIN_SHOOT_DIST * strength);
+			drawArrow(rend, px, py, m.x, m.y, MIN_SHOOT_DIST);
+			drawArrow(rend, px - 800, py, m.x - 800, m.y, MIN_SHOOT_DIST * strength);
+			drawArrow(rend, px + 800, py, m.x + 800, m.y, MIN_SHOOT_DIST * strength);
 		}
 	}
 

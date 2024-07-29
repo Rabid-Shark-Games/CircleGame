@@ -41,7 +41,7 @@ void Faller::respawn(float y) {
 }
 
 void Faller::draw(SDL_Renderer *rend) const {
-	drawocto2(rend, 5, x, y, animating ? animtime * animtime * 30 : 0);
+	drawOctagonEx(rend, 5, x, y, animating ? animtime * animtime * 30 : 0);
 }
 
 bool Faller::intersects(int px, int py) const {

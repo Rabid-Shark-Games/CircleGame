@@ -1,8 +1,8 @@
 #pragma once
 
-#include <SDL2/SDL.h>
+struct SDL_Renderer;
 
-void drawarrow(SDL_Renderer *rend, int x1, int y1, int x2, int y2, float min);
+void drawArrow(SDL_Renderer *rend, int x1, int y1, int x2, int y2, float min);
 
-void drawocto(SDL_Renderer *rend, int r, int x, int y);
-void drawocto2(SDL_Renderer *rend, int r, int x, int y, int explode);
+void drawOctagon(SDL_Renderer *rend, int r, int x, int y);
+void drawOctagonEx(SDL_Renderer *rend, int r, int x, int y, int explode);

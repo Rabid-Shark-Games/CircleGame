@@ -12,12 +12,12 @@ constexpr int menuCenY = (600 - 128) / 2;
 
 static void drawRopeGraphic(SDL_Renderer *rend, int x, int y) {
 	SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-	drawocto(rend, 16, x + 128 - 16, y + 16);
+	drawOctagon(rend, 16, x + 128 - 16, y + 16);
 
 	SDL_RenderDrawLine(rend, x + 32, y + 128 - 32, x + 128 - 16, y + 16);
 
 	SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-	drawocto(rend, 32, x + 32, y + 128 - 32);
+	drawOctagon(rend, 32, x + 32, y + 128 - 32);
 }
 
 static bool isMouseHovering(Mouse m, int x, int y, int w, int h) {
