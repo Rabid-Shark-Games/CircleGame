@@ -137,10 +137,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CircleGame.cpp" />
+    <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="NumberStrings.cpp" />
     <ClCompile Include="String.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Mouse.h" />
     <ClInclude Include="NumberStrings.h" />
     <ClInclude Include="String.h" />
   </ItemGroup>

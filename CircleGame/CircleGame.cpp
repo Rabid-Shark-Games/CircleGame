@@ -3,6 +3,7 @@
 #include <vector>
 #include "String.h"
 #include "NumberStrings.h"
+#include "Mouse.h"
 
 #define DEBUG_VEL 0
 #define DEBUG_VARS 0
@@ -243,11 +244,9 @@ void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
 	srand(8213);
 	unsigned long long lastcount = SDL_GetPerformanceCounter();
-	bool dragging = false;
 	float px = 400;
 	float py = 500;
-	int mx = 0;
-	int my = 0;
+	Mouse m;
 	float vx = 0;
 	float vy = 0;
 	bool moved = false;
@@ -286,25 +285,25 @@ void run(SDL_Renderer *rend, bool *running) {
 				}
 				break;
 			case SDL_MOUSEMOTION:
-				mx = ev.motion.x;
-				my = ev.motion.y;
+				m.x = ev.motion.x;
+				m.y = ev.motion.y;
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				if (ev.button.button == SDL_BUTTON_LEFT) {
-					mx = ev.button.x;
-					my = ev.button.y;
-					dragging = true;
-					gcx = mx;
-					gcy = my;
-					mousedist = sqrtf((mx - px) * (mx - px) + (my - py) * (my - py));
+					m.x = ev.button.x;
+					m.y = ev.button.y;
+					m.dragging = true;
+					gcx = m.x;
+					gcy = m.y;
+					mousedist = m.getDistance(px, py);
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
 				if (ev.button.button == SDL_BUTTON_LEFT) {
-					dragging = false;
+					m.dragging = false;
 					moved = true;
 					if (timesinceshoot >= time_until_shoot) {
-						shoot(&vx, &vy, px, py, mx, my, strength * (1 + sqrtf(streakn) / 4));
+						shoot(&vx, &vy, px, py, m.x, m.y, strength * (1 + sqrtf(streakn) / 4));
 						timesinceshoot = 0;
 					}
 				}
@@ -347,7 +346,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		px += vx * delta;
 		py += vy * delta;
 		
-		if (!dragging) {
+		if (!m.dragging) {
 			if (px < 0) {
 				px += 800;
 			}
@@ -358,7 +357,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		if (py < -20 || py > 600 + 20)
 			return;
 
-		if (moved && dragging && timesinceshoot >= time_until_shoot) {
+		if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
 			mousedist += delta * 80 * strength * (1 + sqrtf(streakn) / 4);
 		}
@@ -427,7 +426,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		drawocto(rend, 20, px - 800, py);
 		drawocto(rend, 20, px + 800, py);
 
-		if (moved && dragging) {
+		if (moved && m.dragging) {
 			SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < time_until_shoot ? 128 : 255, 255);
 			drawocto(rend, 10, gcx, gcy);
 
@@ -447,16 +446,16 @@ void run(SDL_Renderer *rend, bool *running) {
 #endif
 
 
-		if (dragging) {
+		if (m.dragging) {
 			if (timesinceshoot < time_until_shoot) {
 				SDL_SetRenderDrawColor(rend, 128, 0, 0, 255);
-				SDL_RenderDrawLine(rend, px, py, mx, my);
-				mousedist = sqrtf((mx - px) * (mx - px) + (my - py) * (my - py));
+				SDL_RenderDrawLine(rend, px, py, m.x, m.y);
+				mousedist = m.getDistance(px, py);
 			}
 			else {
-				drawarrow(rend, px, py, mx, my, min_shoot_dist);
-				drawarrow(rend, px - 800, py, mx - 800, my, min_shoot_dist * strength);
-				drawarrow(rend, px + 800, py, mx + 800, my, min_shoot_dist * strength);
+				drawarrow(rend, px, py, m.x, m.y, min_shoot_dist);
+				drawarrow(rend, px - 800, py, m.x - 800, m.y, min_shoot_dist * strength);
+				drawarrow(rend, px + 800, py, m.x + 800, m.y, min_shoot_dist * strength);
 			}
 		}
 
