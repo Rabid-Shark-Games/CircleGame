@@ -4,10 +4,7 @@
 #include "String.h"
 #include "NumberStrings.h"
 #include "Mouse.h"
-
-#define DEBUG_VEL 0
-#define DEBUG_VARS 0
-#define DARK_MODE 1
+#include "Constants.h"
 
 StaticString streakStr("Streak! x");
 
@@ -54,9 +51,6 @@ void drawocto2(SDL_Renderer *rend, int r, int x, int y, int explode) {
 void drawocto(SDL_Renderer *rend, int r, int x, int y) {
 	drawocto2(rend, r, x, y, 0);
 }
-
-constexpr float min_shoot_dist = 150;
-constexpr float time_until_shoot = 0.25f;
 
 void shoot(float *vx, float *vy, int px, int py, int mx, int my, float strength) {
 	float dx = mx - px;
@@ -264,7 +258,6 @@ void run(SDL_Renderer *rend, bool *running) {
 	int gcx = 0;
 	int gcy = 0;
 	std::vector<Faller> fallers;
-	constexpr int num_fallers = 8;
 	for (int i = 0; i < num_fallers; i++) {
 		fallers.push_back(Faller{ (float)i * (800 / num_fallers) + (400 / num_fallers) - 5, 100, 0, ((float)rand() / RAND_MAX) * 1.3f});
 		Faller f;

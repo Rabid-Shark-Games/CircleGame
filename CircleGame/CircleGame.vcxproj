@@ -142,6 +142,7 @@
     <ClCompile Include="String.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="NumberStrings.h" />
     <ClInclude Include="String.h" />
