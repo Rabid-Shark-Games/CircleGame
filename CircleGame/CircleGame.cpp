@@ -6,8 +6,9 @@
 #include "Mouse.h"
 #include "Constants.h"
 #include "Timer.h"
-
-StaticString streakStr("Streak! x");
+#include "Score.h"
+#include "Collisions.h"
+#include "StaticStrings.h"
 
 void drawarrow(SDL_Renderer *rend, int x1, int y1, int x2, int y2, float min) {
 	float d = sqrtf((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -123,87 +124,6 @@ struct Faller {
 	}
 };
 
-struct Collisions {
-	struct Collision {
-		SDL_Point p;
-		float rem;
-		int amt;
-		bool operator ==(Collision *c) {
-			return this == c;
-		}
-	};
-	std::vector<Collision> collisions;
-	std::vector<Collision> streaks;
-	bool diddraw = false;
-
-	void add_collision(SDL_Point p, int amt) {
-		for (Collision &c : collisions) {
-			if (c.rem <= 0) {
-				c.p = p;
-				c.rem = 1.f;
-				c.amt = amt;
-				return;
-			}
-		}
-		Collision c;
-		c.p = p;
-		c.rem = 1.f;
-		c.amt = amt;
-		collisions.push_back(c);
-	}
-
-	void mark_streak(SDL_Point where, int num) {
-		for (Collision &c : streaks) {
-			if (c.rem <= 0) {
-				c.p = where;
-				c.rem = sqrtf(num) * 2;
-				c.amt = num;
-				return;
-			}
-		}
-		Collision c;
-		c.p = where;
-		c.rem = 2.f;
-		c.amt = num;
-		streaks.push_back(c);
-	}
-
-	void process(float delta) {
-		for (Collision &c : collisions) {
-			c.rem -= delta;
-		}
-		for (Collision &c : streaks) {
-			c.rem -= delta;
-		}
-	}
-
-	unsigned char getopac(float lifetime) {
-		int ret = lifetime * 500;
-		if (ret > 255)
-			return 255;
-		return ret;
-	}
-
-	void draw(SDL_Renderer *rend) {
-		diddraw = false;
-		for (const Collision &c : collisions) {
-			if (c.rem <= 0)
-				continue;
-			drawnumcen(rend, c.amt, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(c.rem)});
-			diddraw = true;
-		}
-
-		for (const Collision &c : streaks) {
-			if (c.rem <= 0)
-				continue;
-			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(c.rem) };
-			int o1 = measurenum(c.amt) / 2;
-			int o2 = streakStr.drawcen(rend, c.p.x - o1, c.p.y, col);
-			drawnum(rend, c.amt, c.p.x - o1 + o2, c.p.y - 10, col);
-		}
-	}
-};
-
 void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my, float dist) {
 	float ox = *px;
 	float oy = *py;
@@ -245,20 +165,15 @@ struct Fallers {
 		}
 	}
 
-	void process(float delta, int px, int py, int *streakn, int *streakc, float *score, Collisions *collisions) {
+	void process(float delta, int px, int py, Score *s, Collisions *collisions) {
 		for (Faller &faller : _fallers) {
 			faller.fall(delta);
 
 			if (faller.intersects(px, py)) {
-				++*streakn;
-				int s = 10
-					* (1 + *streakn / 4)
-					;
-				*score += s;
-				*streakc += s;
-				collisions->add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, s);
-				if (*streakn % 4 == 0)
-					collisions->mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, *streakn / 4);
+				int pts = s->countHit();
+				collisions->add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, pts);
+				if (s->wasStreakHit())
+					collisions->mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, s->streakMult());
 				faller.begin_animate();
 			}
 		}
@@ -271,9 +186,6 @@ struct Fallers {
 	}
 };
 
-float highscore = 0.0f;
-float highscorecount = 0.0f;
-
 void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
 	srand(8213);
@@ -285,13 +197,7 @@ void run(SDL_Renderer *rend, bool *running) {
 	float vy = 0;
 	bool moved = false;
 	float strength = 1;
-	float score = 0.0f;
-	float scorecount = 0.0f;
-	float streakccount = 0.0f;
-	float streaktimerem = 0.0f;
-	bool pb = false;
-	int streakn = 0;
-	int streakc = 0;
+	Score s;
 	float timesinceshoot = time_until_shoot;
 	float mousedist = 0;
 	int gcx = 0;
@@ -327,7 +233,7 @@ void run(SDL_Renderer *rend, bool *running) {
 					m.dragging = false;
 					moved = true;
 					if (timesinceshoot >= time_until_shoot) {
-						shoot(&vx, &vy, px, py, m.x, m.y, strength * (1 + sqrtf(streakn) / 4));
+						shoot(&vx, &vy, px, py, m.x, m.y, strength * s.streakStrengthMult());
 						timesinceshoot = 0;
 					}
 				}
@@ -341,20 +247,7 @@ void run(SDL_Renderer *rend, bool *running) {
 			timesinceshoot += t.getDelta();
 			vy += 200 * t.getDelta();
 			strength += 0.02f * t.getDelta();
-			if (score > highscore) {
-				pb = true;
-				highscore = score;
-			}
-
-			streaktimerem -= t.getDelta();
-			if (collisions.diddraw || streakc != streakccount) {
-				streaktimerem = 1.f;
-			}
-
-			if (streaktimerem <= 0) {
-				streakn = 0;
-				streakc = 0;
-			}
+			s.tick(t.getDelta(), collisions);
 		}
 
 		px += vx * t.getDelta();
@@ -373,12 +266,12 @@ void run(SDL_Renderer *rend, bool *running) {
 
 		if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-			mousedist += t.getDelta() * 80 * strength * (1 + sqrtf(streakn) / 4);
+			mousedist += t.getDelta() * 80 * strength * s.streakStrengthMult();
 		}
 
 		if (moved) {
 			collisions.process(t.getDelta());
-			fallers.process(t.getDelta(), px, py, &streakn, &streakc, &score, &collisions );
+			fallers.process(t.getDelta(), px, py, &s, &collisions);
 		}
 
 		if (py < 255) {
@@ -388,9 +281,9 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
-			dark += (int)(sqrtf(streakn) * 5);
+			dark += s.streakDarkness();
 #else
-			dark -= (int)(sqrtf(streakn) * 5);
+			dark -= s.streakDarkness();
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
@@ -401,14 +294,14 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
-			dark += (int)(sqrtf(streakn) * 5);
+			dark += s.streakDarkness();
 #else
-			dark -= (int)(sqrtf(streakn) * 5);
+			dark -= s.streakDarkness();
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
 		else {
-			int dark = 255 - (int)(sqrtf(streakn) * 5);
+			int dark = 255 - s.streakDarkness();
 			if (dark < 0)
 				dark = 0;
 #if DARK_MODE
@@ -471,28 +364,8 @@ void run(SDL_Renderer *rend, bool *running) {
 				255 });
 		}
 
-		highscorecount += t.getDelta() * (moved ? 90 : 300);
-		scorecount += t.getDelta() * 90;
-		streakccount += t.getDelta() * 90;
-		if (highscorecount > highscore)
-			highscorecount = highscore;
-		if (scorecount > score)
-			scorecount = score;
-		if (streakccount > streakc)
-			streakccount = streakc;
-
-		drawnum(rend,
-			highscorecount,
-			10, 10, SDL_Color{ 0, 255, 0, 255 });
-		int noff = drawnum(rend,
-			scorecount,
-			10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
-		if (streaktimerem > 0.0f) {
-			noff += drawnumstr(rend, "+", 1, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
-			drawnum(rend,
-				streakccount,
-				20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
-		}
+		s.tickCounters(t.getDelta(), moved);
+		s.draw(rend);
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
 #if DARK_MODE
@@ -523,7 +396,7 @@ int SDL_main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	streakStr.load(rend);
+	Str::load(rend);
 	initnums(rend);
 
 	bool running = true;
