@@ -5,5 +5,5 @@
 #define DARK_MODE 1
 
 constexpr float min_shoot_dist = 150;
-constexpr float time_until_shoot = 0.25f;
+constexpr float time_until_shoot = 0.4f;
 constexpr int num_fallers = 8;

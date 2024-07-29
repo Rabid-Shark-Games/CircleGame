@@ -382,9 +382,9 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
-			dark += streakn * 5;
+			dark += (int)(sqrtf(streakn) * 5);
 #else
-			dark -= streakn * 5;
+			dark -= (int)(sqrtf(streakn) * 5);
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
@@ -395,18 +395,21 @@ void run(SDL_Renderer *rend, bool *running) {
 				dark = 255;
 #if DARK_MODE
 			dark = 255 - dark;
-			dark += streakn * 5;
+			dark += (int)(sqrtf(streakn) * 5);
 #else
-			dark -= streakn * 5;
+			dark -= (int)(sqrtf(streakn) * 5);
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
-		else
+		else {
+			int dark = 255 - (int)(sqrtf(streakn) * 5);
+			if (dark < 0)
+				dark = 0;
 #if DARK_MODE
-			SDL_SetRenderDrawColor(rend, streakn * 5, streakn * 5, streakn * 5, 255);
-#else
-			SDL_SetRenderDrawColor(rend, 255 - streakn * 5, 255 - streakn * 5, 255 - streakn * 5, 255);
+			dark = 255 - dark;
 #endif
+			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
+		}
 		SDL_RenderClear(rend);
 
 		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
