@@ -103,9 +103,9 @@ struct Faller {
 		}
 	}
 
-	void respawn() {
+	void respawn(float y = -10) {
 		animating = false;
-		y = -10;
+		this->y = y;
 		x = 10 + rand() % (800 - 20);
 		v = 0;
 	}
@@ -232,6 +232,45 @@ void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my, float 
 	}
 }
 
+struct Fallers {
+	std::vector<Faller> _fallers;
+
+	Fallers() {
+		for (int i = 0; i < num_fallers; i++) {
+			_fallers.push_back(Faller{ (float)i * (800 / num_fallers) + (400 / num_fallers) - 5, 100, 0, ((float)rand() / RAND_MAX) * 1.3f });
+			Faller f;
+			f.respawn(-50);
+			f.activationtime = ((float)rand() / RAND_MAX) * 2.3f;
+			_fallers.push_back(f);
+		}
+	}
+
+	void process(float delta, int px, int py, int *streakn, int *streakc, float *score, Collisions *collisions) {
+		for (Faller &faller : _fallers) {
+			faller.fall(delta);
+
+			if (faller.intersects(px, py)) {
+				++*streakn;
+				int s = 10
+					* (1 + *streakn / 4)
+					;
+				*score += s;
+				*streakc += s;
+				collisions->add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, s);
+				if (*streakn % 4 == 0)
+					collisions->mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, *streakn / 4);
+				faller.begin_animate();
+			}
+		}
+	}
+
+	void draw(SDL_Renderer *rend) {
+		for (const Faller &faller : _fallers) {
+			faller.draw(rend);
+		}
+	}
+};
+
 float highscore = 0.0f;
 float highscorecount = 0.0f;
 
@@ -257,15 +296,7 @@ void run(SDL_Renderer *rend, bool *running) {
 	float mousedist = 0;
 	int gcx = 0;
 	int gcy = 0;
-	std::vector<Faller> fallers;
-	for (int i = 0; i < num_fallers; i++) {
-		fallers.push_back(Faller{ (float)i * (800 / num_fallers) + (400 / num_fallers) - 5, 100, 0, ((float)rand() / RAND_MAX) * 1.3f});
-		Faller f;
-		f.respawn();
-		f.y = -50;
-		f.activationtime = ((float)rand() / RAND_MAX) * 2.3f;
-		fallers.push_back(f);
-	}
+	Fallers fallers;
 	Collisions collisions;
 	while (*running) {
 		while (SDL_PollEvent(&ev)) {
@@ -347,22 +378,7 @@ void run(SDL_Renderer *rend, bool *running) {
 
 		if (moved) {
 			collisions.process(t.getDelta());
-			for (Faller &faller : fallers) {
-				faller.fall(t.getDelta());
-
-				if (faller.intersects(px, py)) {
-					++streakn;
-					int s = 10
-						* (1 + streakn / 4)
-						;
-					score += s;
-					streakc += s;
-					collisions.add_collision(SDL_Point{ (int)faller.x, (int)faller.y + 20 }, s);
-					if (streakn % 4 == 0)
-						collisions.mark_streak(SDL_Point{ (int)faller.x, (int)faller.y + 40 }, streakn / 4);
-					faller.begin_animate();
-				}
-			}
+			fallers.process(t.getDelta(), px, py, &streakn, &streakc, &score, &collisions );
 		}
 
 		if (py < 255) {
@@ -403,9 +419,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		SDL_RenderClear(rend);
 
 		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-		for (const Faller &faller : fallers) {
-			faller.draw(rend);
-		}
+		fallers.draw(rend);
 
 		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 		drawocto(rend, 20, px, py);
