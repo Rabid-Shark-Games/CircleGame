@@ -138,8 +138,10 @@
   <ItemGroup>
     <ClCompile Include="CircleGame.cpp" />
     <ClCompile Include="Collisions.cpp" />
+    <ClCompile Include="DrawUtil.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="NumberStrings.cpp" />
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="Score.cpp" />
     <ClCompile Include="StaticStrings.cpp" />
     <ClCompile Include="String.cpp" />
@@ -148,8 +150,10 @@
   <ItemGroup>
     <ClInclude Include="Collisions.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="DrawUtil.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="NumberStrings.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="Score.h" />
     <ClInclude Include="StaticStrings.h" />
     <ClInclude Include="String.h" />

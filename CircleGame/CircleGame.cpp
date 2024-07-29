@@ -9,62 +9,8 @@
 #include "Score.h"
 #include "Collisions.h"
 #include "StaticStrings.h"
-
-void drawarrow(SDL_Renderer *rend, int x1, int y1, int x2, int y2, float min) {
-	float d = sqrtf((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-	if (!d)
-		return;
-	if (d < min) {
-		x2 -= x1;
-		y2 -= y1;
-		x2 *= min / d;
-		y2 *= min / d;
-		drawarrow(rend, x1, y1, x1 + x2, y1 + y2, 0);
-		return;
-	}
-	SDL_RenderDrawLine(rend, x1, y1, x2, y2);
-	float angle = atanf((float)(y2 - y1) / (float)(x2 - x1));
-	d /= 3;
-	if (d > 30)
-		d = 30;
-	if (x2 - x1 < 0)
-		angle += M_PI;
-	float a1 = angle + M_PI_4 * 3;
-	float a2 = angle - M_PI_4 * 3;
-	SDL_RenderDrawLine(rend, x2, y2, x2 + cosf(a1) * d, y2 + sinf(a1) * d);
-	SDL_RenderDrawLine(rend, x2, y2, x2 + cosf(a2) * d, y2 + sinf(a2) * d);
-}
-
-void drawocto2(SDL_Renderer *rend, int r, int x, int y, int explode) {
-	float side = r * sinf(M_PI_2);
-	int side2 = side / 2.f;
-	SDL_Point points[9];
-	
-	SDL_RenderDrawLine(rend, x - side2, y - r - explode, x + side2, y - r - explode);
-	SDL_RenderDrawLine(rend, x + side2 + explode, y - r - explode, x + r + explode, y - side2 - explode);
-	SDL_RenderDrawLine(rend, x + r + explode, y - side2, x + r + explode, y + side2);
-	SDL_RenderDrawLine(rend, x + r + explode, y + side2 + explode, x + side2 + explode, y + r + explode);
-	SDL_RenderDrawLine(rend, x + side2, y + r + explode, x - side2, y + r + explode);
-	SDL_RenderDrawLine(rend, x - side2 - explode, y + r + explode, x - r - explode, y + side2 + explode);
-	SDL_RenderDrawLine(rend, x - r - explode, y + side2, x - r - explode, y - side2);
-	SDL_RenderDrawLine(rend, x - r - explode, y - side2 - explode, x - side2 - explode, y - r - explode);
-}
-
-void drawocto(SDL_Renderer *rend, int r, int x, int y) {
-	drawocto2(rend, r, x, y, 0);
-}
-
-void shoot(float *vx, float *vy, int px, int py, int mx, int my, float strength) {
-	float dx = mx - px;
-	float dy = my - py;
-	float d = sqrtf(dx * dx + dy * dy);
-	dx /= d;
-	dy /= d;
-	if (d < min_shoot_dist * strength)
-		d = min_shoot_dist * strength;
-	*vx = dx * d * strength * 1.4f;
-	*vy = dy * d * strength * 1.8f;
-}
+#include "Player.h"
+#include "DrawUtil.h"
 
 struct Faller {
 	float x;
@@ -124,34 +70,6 @@ struct Faller {
 	}
 };
 
-void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my, float dist) {
-	float ox = *px;
-	float oy = *py;
-	
-	float dx = *px - mx;
-	float dy = *py - my;
-	float d = sqrtf(dx * dx + dy * dy);
-	if (d > dist) {
-		*px -= mx;
-		*py -= my;
-
-		*px /= d;
-		*py /= d;
-		*px *= dist;
-		*py *= dist;
-
-		*px += mx;
-		*py += my;
-
-		*vx += *px - ox;
-		*vy += *py - oy;
-
-		if (oy < *vy) {
-			*vy = 0;
-		}
-	}
-}
-
 struct Fallers {
 	std::vector<Faller> _fallers;
 
@@ -180,6 +98,7 @@ struct Fallers {
 	}
 
 	void draw(SDL_Renderer *rend) {
+		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 		for (const Faller &faller : _fallers) {
 			faller.draw(rend);
 		}
@@ -190,18 +109,10 @@ void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
 	srand(8213);
 	Timer t;
-	float px = 400;
-	float py = 500;
 	Mouse m;
-	float vx = 0;
-	float vy = 0;
-	bool moved = false;
+	Player p;
 	float strength = 1;
 	Score s;
-	float timesinceshoot = time_until_shoot;
-	float mousedist = 0;
-	int gcx = 0;
-	int gcy = 0;
 	Fallers fallers;
 	Collisions collisions;
 	while (*running) {
@@ -223,19 +134,13 @@ void run(SDL_Renderer *rend, bool *running) {
 					m.x = ev.button.x;
 					m.y = ev.button.y;
 					m.dragging = true;
-					gcx = m.x;
-					gcy = m.y;
-					mousedist = m.getDistance(px, py);
+					p.startGrab(m);
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
 				if (ev.button.button == SDL_BUTTON_LEFT) {
 					m.dragging = false;
-					moved = true;
-					if (timesinceshoot >= time_until_shoot) {
-						shoot(&vx, &vy, px, py, m.x, m.y, strength * s.streakStrengthMult());
-						timesinceshoot = 0;
-					}
+					p.tryShoot(m, strength * s.streakStrengthMult());
 				}
 				break;
 			}
@@ -243,39 +148,21 @@ void run(SDL_Renderer *rend, bool *running) {
 
 		t.tick();
 
-		if (moved) {
-			timesinceshoot += t.getDelta();
-			vy += 200 * t.getDelta();
+		if (p.moved) {
 			strength += 0.02f * t.getDelta();
 			s.tick(t.getDelta(), collisions);
 		}
 
-		px += vx * t.getDelta();
-		py += vy * t.getDelta();
-		
-		if (!m.dragging) {
-			if (px < 0) {
-				px += 800;
-			}
-			if (px > 800) {
-				px -= 800;
-			}
-		}
-		if (py < -20 || py > 600 + 20)
+		if (p.tick(m, t.getDelta(), strength * s.streakStrengthMult()))
 			return;
 
-		if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
-			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-			mousedist += t.getDelta() * 80 * strength * s.streakStrengthMult();
-		}
-
-		if (moved) {
+		if (p.moved) {
 			collisions.process(t.getDelta());
-			fallers.process(t.getDelta(), px, py, &s, &collisions);
+			fallers.process(t.getDelta(), p.px, p.py, &s, &collisions);
 		}
 
-		if (py < 255) {
-			int dark = py;
+		if (p.py < 255) {
+			int dark = p.py;
 			dark += 128;
 			if (dark > 255)
 				dark = 255;
@@ -287,8 +174,8 @@ void run(SDL_Renderer *rend, bool *running) {
 #endif
 			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
 		}
-		else if (py > 600 - 255) {
-			int dark = 255 + 600 - py;
+		else if (p.py > 600 - 255) {
+			int dark = 255 + 600 - p.py;
 			dark += 128;
 			if (dark > 255)
 				dark = 255;
@@ -311,60 +198,13 @@ void run(SDL_Renderer *rend, bool *running) {
 		}
 		SDL_RenderClear(rend);
 
-		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 		fallers.draw(rend);
 
-		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-		drawocto(rend, 20, px, py);
-		drawocto(rend, 20, px - 800, py);
-		drawocto(rend, 20, px + 800, py);
-
-		if (moved && m.dragging) {
-			SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < time_until_shoot ? 128 : 255, 255);
-			drawocto(rend, 10, gcx, gcy);
-
-			SDL_RenderDrawLine(rend, px, py, gcx, gcy);
-			SDL_RenderDrawLine(rend, px - 800, py, gcx - 800, gcy);
-			SDL_RenderDrawLine(rend, px + 800, py, gcx + 800, gcy);
-
-			SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-		}
-
-#if DEBUG_VEL
-		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-
-		drawarrow(rend, px, py, px + vx, py + vy, 0);
-
-		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-#endif
-
-
-		if (m.dragging) {
-			if (timesinceshoot < time_until_shoot) {
-				SDL_SetRenderDrawColor(rend, 128, 0, 0, 255);
-				SDL_RenderDrawLine(rend, px, py, m.x, m.y);
-				mousedist = m.getDistance(px, py);
-			}
-			else {
-				drawarrow(rend, px, py, m.x, m.y, min_shoot_dist);
-				drawarrow(rend, px - 800, py, m.x - 800, m.y, min_shoot_dist * strength);
-				drawarrow(rend, px + 800, py, m.x + 800, m.y, min_shoot_dist * strength);
-			}
-		}
+		p.draw(rend, m, strength);
 
 		collisions.draw(rend);
 
-		if (timesinceshoot < time_until_shoot) {
-			drawnumcen(rend, (time_until_shoot - timesinceshoot) * 100, px, py + 30, SDL_Color{
-#if DARK_MODE
-			255, 255, 255,
-#else
-			0, 0, 0,
-#endif
-				255 });
-		}
-
-		s.tickCounters(t.getDelta(), moved);
+		s.tickCounters(t.getDelta(), p.moved);
 		s.draw(rend);
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
