@@ -140,12 +140,14 @@
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="NumberStrings.cpp" />
     <ClCompile Include="String.cpp" />
+    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="NumberStrings.h" />
     <ClInclude Include="String.h" />
+    <ClInclude Include="Timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

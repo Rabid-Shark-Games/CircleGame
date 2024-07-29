@@ -5,6 +5,7 @@
 #include "NumberStrings.h"
 #include "Mouse.h"
 #include "Constants.h"
+#include "Timer.h"
 
 StaticString streakStr("Streak! x");
 
@@ -237,7 +238,7 @@ float highscorecount = 0.0f;
 void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
 	srand(8213);
-	unsigned long long lastcount = SDL_GetPerformanceCounter();
+	Timer t;
 	float px = 400;
 	float py = 500;
 	Mouse m;
@@ -304,20 +305,18 @@ void run(SDL_Renderer *rend, bool *running) {
 			}
 		}
 
-		unsigned long long curcount = SDL_GetPerformanceCounter();
-		float delta = (float)(curcount - lastcount) / SDL_GetPerformanceFrequency();
-		lastcount = curcount;
+		t.tick();
 
 		if (moved) {
-			timesinceshoot += delta;
-			vy += 200 * delta;
-			strength += 0.02f * delta;
+			timesinceshoot += t.getDelta();
+			vy += 200 * t.getDelta();
+			strength += 0.02f * t.getDelta();
 			if (score > highscore) {
 				pb = true;
 				highscore = score;
 			}
 
-			timesincespawn += delta;
+			timesincespawn += t.getDelta();
 			if (timesincespawn > 5) {
 				timesincespawn -= 5;
 				//Faller f;
@@ -325,7 +324,7 @@ void run(SDL_Renderer *rend, bool *running) {
 				//fallers.push_back(f);
 			}
 
-			streaktimerem -= delta;
+			streaktimerem -= t.getDelta();
 			if (collisions.diddraw || streakc != streakccount) {
 				streaktimerem = 1.f;
 			}
@@ -336,8 +335,8 @@ void run(SDL_Renderer *rend, bool *running) {
 			}
 		}
 
-		px += vx * delta;
-		py += vy * delta;
+		px += vx * t.getDelta();
+		py += vy * t.getDelta();
 		
 		if (!m.dragging) {
 			if (px < 0) {
@@ -352,13 +351,13 @@ void run(SDL_Renderer *rend, bool *running) {
 
 		if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
-			mousedist += delta * 80 * strength * (1 + sqrtf(streakn) / 4);
+			mousedist += t.getDelta() * 80 * strength * (1 + sqrtf(streakn) / 4);
 		}
 
 		if (moved) {
-			collisions.process(delta);
+			collisions.process(t.getDelta());
 			for (Faller &faller : fallers) {
-				faller.fall(delta);
+				faller.fall(t.getDelta());
 
 				if (faller.intersects(px, py)) {
 					++streakn;
@@ -467,9 +466,9 @@ void run(SDL_Renderer *rend, bool *running) {
 				255 });
 		}
 
-		highscorecount += delta * (moved ? 90 : 300);
-		scorecount += delta * 90;
-		streakccount += delta * 90;
+		highscorecount += t.getDelta() * (moved ? 90 : 300);
+		scorecount += t.getDelta() * 90;
+		streakccount += t.getDelta() * 90;
 		if (highscorecount > highscore)
 			highscorecount = highscore;
 		if (scorecount > score)
