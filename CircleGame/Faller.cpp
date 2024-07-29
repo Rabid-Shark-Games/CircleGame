@@ -1,5 +1,6 @@
 #include "Faller.h"
 
+#include <SDL2/SDL.h>
 #include "Constants.h"
 #include "DrawUtil.h"
 
@@ -36,12 +37,12 @@ void Faller::animate(float delta) {
 void Faller::respawn(float y) {
 	animating = false;
 	this->y = y;
-	x = 10 + rand() % (800 - 20);
+	x = (float)(10 + rand() % (800 - 20));
 	v = 0;
 }
 
 void Faller::draw(SDL_Renderer *rend) const {
-	drawOctagonEx(rend, 5, x, y, animating ? animtime * animtime * 30 : 0);
+	drawOctagonEx(rend, 5, (int)x, (int)y, animating ? animtime * animtime * 30 : 0);
 }
 
 bool Faller::intersects(int px, int py) const {
@@ -62,15 +63,15 @@ Fallers::Fallers() {
 	}
 }
 
-void Fallers::process(float delta, int px, int py, Score *s, Collisions *collisions) {
+void Fallers::process(float delta, int px, int py, Score &s, Collisions &collisions) {
 	for (Faller &faller : _fallers) {
 		faller.fall(delta);
 
 		if (faller.intersects(px, py)) {
-			int pts = s->countHit();
-			collisions->addCollisionText(faller.x, faller.y + 20, pts);
-			if (s->wasStreakHit())
-				collisions->addStreakText(faller.x, faller.y + 40, s->streakMult());
+			int pts = s.countHit();
+			collisions.addCollisionText((int)faller.x, (int)(faller.y + 20), pts);
+			if (s.wasStreakHit())
+				collisions.addStreakText((int)faller.x, (int)(faller.y + 40), s.streakMult());
 			faller.begin_animate();
 		}
 	}
