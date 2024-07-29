@@ -53,8 +53,8 @@ bool Faller::intersects(int px, int py) const {
 }
 
 Fallers::Fallers() {
-	for (int i = 0; i < num_fallers; i++) {
-		_fallers.push_back(Faller{ (float)i * (800 / num_fallers) + (400 / num_fallers) - 5, 100, 0, ((float)rand() / RAND_MAX) * 1.3f });
+	for (int i = 0; i < NUM_FALLERS; i++) {
+		_fallers.push_back(Faller{ (float)i * (800 / NUM_FALLERS) + (400 / NUM_FALLERS) - 5, 100, 0, ((float)rand() / RAND_MAX) * 1.3f });
 		Faller f;
 		f.respawn(-50);
 		f.activationtime = ((float)rand() / RAND_MAX) * 2.3f;

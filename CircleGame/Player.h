@@ -12,7 +12,7 @@ struct Player {
 	float py = 500;
 	float vx = 0;
 	float vy = 0;
-	float timesinceshoot = time_until_shoot;
+	float timesinceshoot = TIME_UNTIL_SHOOT;
 	float mousedist = 0;
 	int gcx = 0;
 	int gcy = 0;

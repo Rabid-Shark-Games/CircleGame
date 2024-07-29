@@ -20,7 +20,7 @@ static void setbgcolor(SDL_Renderer *rend, Player *p, Score *s) {
 		dark += 128;
 		if (dark > 255)
 			dark = 255;
-#if DARK_MODE
+#if COMP_DARK_MODE
 		dark = 255 - dark;
 		dark += s->streakDarkness();
 #else
@@ -33,7 +33,7 @@ static void setbgcolor(SDL_Renderer *rend, Player *p, Score *s) {
 		dark += 128;
 		if (dark > 255)
 			dark = 255;
-#if DARK_MODE
+#if COMP_DARK_MODE
 		dark = 255 - dark;
 		dark += s->streakDarkness();
 #else
@@ -45,7 +45,7 @@ static void setbgcolor(SDL_Renderer *rend, Player *p, Score *s) {
 		int dark = 255 - s->streakDarkness();
 		if (dark < 0)
 			dark = 0;
-#if DARK_MODE
+#if COMP_DARK_MODE
 		dark = 255 - dark;
 #endif
 		SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
@@ -134,16 +134,16 @@ static void run(SDL_Renderer *rend, bool *running) {
 
 		s.tickCounters(t.getDelta(), p.moved && !u.menuopen);
 		s.draw(rend);
-#if DEBUG_VARS
+#if COMP_DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
-#if DARK_MODE
+#if COMP_DARK_MODE
 			255, 255, 255,
 #else
 			0, 0, 0,
 #endif
 			255 });
 		drawfloat(rend, strength * s.streakStrengthMult(), 10, 70, SDL_Color{
-#if DARK_MODE
+#if COMP_DARK_MODE
 			255, 255, 255,
 #else
 			0, 0, 0,

@@ -19,8 +19,8 @@ static void shoot(float *vx, float *vy, int px, int py, int mx, int my, float st
 	float d = sqrtf(dx * dx + dy * dy);
 	dx /= d;
 	dy /= d;
-	if (d < min_shoot_dist * strength)
-		d = min_shoot_dist * strength;
+	if (d < MIN_SHOOT_DIST * strength)
+		d = MIN_SHOOT_DIST * strength;
 	if (d > 1000)
 		d = 1000;
 	*vx = dx * d * strength * 1.4f;
@@ -30,7 +30,7 @@ static void shoot(float *vx, float *vy, int px, int py, int mx, int my, float st
 void Player::tryShoot(Mouse m, float strength)
 {
 	moved = true;
-	if (timesinceshoot >= time_until_shoot) {
+	if (timesinceshoot >= TIME_UNTIL_SHOOT) {
 		shoot(&vx, &vy, px, py, m.x, m.y, strength);
 		timesinceshoot = 0;
 	}
@@ -85,7 +85,7 @@ bool Player::tick(Mouse m, float delta, float strength, Upgrades *u)
 	if (py < -20 || py > 600 + 20)
 		return true;
 
-	if (moved && m.dragging && timesinceshoot >= time_until_shoot) {
+	if (moved && m.dragging && timesinceshoot >= TIME_UNTIL_SHOOT) {
 		calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
 		mousedist += delta * 80 * strength * u->ropemult;
 	}
@@ -101,7 +101,7 @@ void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 	drawocto(rend, 20, px + 800, py);
 
 	if (moved && m.dragging) {
-		SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < time_until_shoot ? 128 : 255, 255);
+		SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < TIME_UNTIL_SHOOT ? 128 : 255, 255);
 		drawocto(rend, 10, gcx, gcy);
 
 		SDL_RenderDrawLine(rend, px, py, gcx, gcy);
@@ -111,7 +111,7 @@ void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 	}
 
-#if DEBUG_VEL
+#if COMP_DEBUG_VEL
 	SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 
 	drawarrow(rend, px, py, px + vx, py + vy, 0);
@@ -121,21 +121,21 @@ void Player::draw(SDL_Renderer *rend, Mouse m, float strength)
 
 
 	if (m.dragging) {
-		if (timesinceshoot < time_until_shoot) {
+		if (timesinceshoot < TIME_UNTIL_SHOOT) {
 			SDL_SetRenderDrawColor(rend, 128, 0, 0, 255);
 			SDL_RenderDrawLine(rend, px, py, m.x, m.y);
 			mousedist = m.getDistance(px, py);
 		}
 		else {
-			drawarrow(rend, px, py, m.x, m.y, min_shoot_dist);
-			drawarrow(rend, px - 800, py, m.x - 800, m.y, min_shoot_dist * strength);
-			drawarrow(rend, px + 800, py, m.x + 800, m.y, min_shoot_dist * strength);
+			drawarrow(rend, px, py, m.x, m.y, MIN_SHOOT_DIST);
+			drawarrow(rend, px - 800, py, m.x - 800, m.y, MIN_SHOOT_DIST * strength);
+			drawarrow(rend, px + 800, py, m.x + 800, m.y, MIN_SHOOT_DIST * strength);
 		}
 	}
 
-	if (timesinceshoot < time_until_shoot) {
-		drawnumcen(rend, (time_until_shoot - timesinceshoot) * 100, px, py + 30, SDL_Color{
-#if DARK_MODE
+	if (timesinceshoot < TIME_UNTIL_SHOOT) {
+		drawnumcen(rend, (TIME_UNTIL_SHOOT - timesinceshoot) * 100, px, py + 30, SDL_Color{
+#if COMP_DARK_MODE
 			255, 255, 255,
 #else
 			0, 0, 0,
