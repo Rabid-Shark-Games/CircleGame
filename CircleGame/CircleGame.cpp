@@ -9,56 +9,60 @@
 TTF_Font *font;
 
 struct RendString {
-	SDL_Surface *sur;
-	SDL_Texture *tex;
+	SDL_Surface *_sur;
+	SDL_Texture *_tex;
+
+	void load(SDL_Renderer *rend, const char *str) {
+		this->_sur = TTF_RenderText_Solid(font, str, SDL_Color{ 255, 255, 255, 255 });
+		this->_tex = SDL_CreateTextureFromSurface(rend, this->_sur);
+		SDL_SetTextureBlendMode(this->_tex, SDL_BLENDMODE_BLEND);
+	}
+
+	void destroy() {
+		SDL_DestroyTexture(this->_tex);
+		SDL_FreeSurface(this->_sur);
+	}
+
+	int draw(SDL_Renderer *rend, int x, int y, SDL_Color col) {
+		SDL_SetTextureColorMod(this->_tex, col.r, col.g, col.b);
+		SDL_SetTextureAlphaMod(this->_tex, col.a);
+		SDL_Rect dstrect;
+		dstrect.x = x;
+		dstrect.y = y;
+		dstrect.w = this->_sur->w;
+		dstrect.h = this->_sur->h;
+		SDL_RenderCopy(rend, this->_tex, nullptr, &dstrect);
+		return dstrect.w;
+	}
+
+	int drawcv(SDL_Renderer *rend, int x, int y, SDL_Color col) {
+		SDL_SetTextureColorMod(this->_tex, col.r, col.g, col.b);
+		SDL_SetTextureAlphaMod(this->_tex, col.a);
+		SDL_Rect dstrect;
+		dstrect.x = x;
+		dstrect.y = y - this->_sur->h / 2;
+		dstrect.w = this->_sur->w;
+		dstrect.h = this->_sur->h;
+		SDL_RenderCopy(rend, this->_tex, nullptr, &dstrect);
+		return dstrect.w;
+	}
+
+	int drawcen(SDL_Renderer *rend, int x, int y, SDL_Color col) {
+		SDL_SetTextureColorMod(this->_tex, col.r, col.g, col.b);
+		SDL_SetTextureAlphaMod(this->_tex, col.a);
+		SDL_Rect dstrect;
+		dstrect.x = x - this->_sur->w / 2;
+		dstrect.y = y - this->_sur->h / 2;
+		dstrect.w = this->_sur->w;
+		dstrect.h = this->_sur->h;
+		SDL_RenderCopy(rend, this->_tex, nullptr, &dstrect);
+		return dstrect.w / 2;
+	}
+
+	int getWidth() const {
+		return this->_sur->w;
+	}
 };
-
-void loadstring(RendString *out, SDL_Renderer *rend, const char *str) {
-	out->sur = TTF_RenderText_Solid(font, str, SDL_Color{ 255, 255, 255, 255 });
-	out->tex = SDL_CreateTextureFromSurface(rend, out->sur);
-	SDL_SetTextureBlendMode(out->tex, SDL_BLENDMODE_BLEND);
-}
-
-void destroystring(RendString *str) {
-	SDL_DestroyTexture(str->tex);
-	SDL_FreeSurface(str->sur);
-}
-
-int drawstring(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
-	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
-	SDL_SetTextureAlphaMod(str->tex, col.a);
-	SDL_Rect dstrect;
-	dstrect.x = x;
-	dstrect.y = y;
-	dstrect.w = str->sur->w;
-	dstrect.h = str->sur->h;
-	SDL_RenderCopy(rend, str->tex, nullptr, &dstrect);
-	return dstrect.w;
-}
-
-int drawstringcv(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
-	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
-	SDL_SetTextureAlphaMod(str->tex, col.a);
-	SDL_Rect dstrect;
-	dstrect.x = x;
-	dstrect.y = y - str->sur->h / 2;
-	dstrect.w = str->sur->w;
-	dstrect.h = str->sur->h;
-	SDL_RenderCopy(rend, str->tex, nullptr, &dstrect);
-	return dstrect.w;
-}
-
-int drawstringcen(SDL_Renderer *rend, RendString *str, int x, int y, SDL_Color col) {
-	SDL_SetTextureColorMod(str->tex, col.r, col.g, col.b);
-	SDL_SetTextureAlphaMod(str->tex, col.a);
-	SDL_Rect dstrect;
-	dstrect.x = x - str->sur->w / 2;
-	dstrect.y = y - str->sur->h / 2;
-	dstrect.w = str->sur->w;
-	dstrect.h = str->sur->h;
-	SDL_RenderCopy(rend, str->tex, nullptr, &dstrect);
-	return dstrect.w / 2;
-}
 
 RendString streakStr;
 
@@ -66,11 +70,11 @@ RendString numStrs[13];
 void initnums(SDL_Renderer *rend) {
 	for (int i = 0; i < 10; i++) {
 		char fmt[2] = { '0' + i, 0 };
-		loadstring(&numStrs[i], rend, fmt);
+		numStrs[i].load(rend, fmt);
 	}
-	loadstring(&numStrs[10], rend, ".");
-	loadstring(&numStrs[11], rend, "+");
-	loadstring(&numStrs[12], rend, "-");
+	numStrs[10].load(rend, ".");
+	numStrs[11].load(rend, "+");
+	numStrs[12].load(rend, "-");
 }
 
 int numidx(char c) {
@@ -91,7 +95,7 @@ int measurenum(int num) {
 		c = 255;
 	}
 	for (int i = 0; i < c; ++i) {
-		off += numStrs[numidx(buf[i])].sur->w;
+		off += numStrs[numidx(buf[i])].getWidth();
 	}
 	return off;
 }
@@ -104,7 +108,7 @@ int drawnum(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 		c = 255;
 	}
 	for (int i = 0; i < c; ++i) {
-		off += drawstring(rend, &numStrs[numidx(buf[i])], x + off, y, col);
+		off += numStrs[numidx(buf[i])].draw(rend, x + off, y, col);
 	}
 	return off;
 }
@@ -112,7 +116,7 @@ int drawnum(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 int drawnumstr(SDL_Renderer *rend, const char *num, int c, int x, int y, SDL_Color col) {
 	int off = 0;
 	for (int i = 0; i < c; ++i) {
-		off += drawstring(rend, &numStrs[numidx(num[i])], x + off, y, col);
+		off += numStrs[numidx(num[i])].draw(rend, x + off, y, col);
 	}
 	return off;
 }
@@ -126,11 +130,11 @@ int drawnumcen(SDL_Renderer *rend, int num, int x, int y, SDL_Color col) {
 		c = 255;
 	}
 	for (int i = 0; i < c; ++i) {
-		len += numStrs[numidx(buf[i])].sur->w;
+		len += numStrs[numidx(buf[i])].getWidth();
 	}
 	off = -len / 2;
 	for (int i = 0; i < c; ++i) {
-		off += drawstringcv(rend, &numStrs[numidx(buf[i])], x + off, y, col);
+		off += numStrs[numidx(buf[i])].drawcv(rend, x + off, y, col);
 	}
 	return off;
 }
@@ -143,7 +147,7 @@ void drawfloat(SDL_Renderer *rend, float num, int x, int y, SDL_Color col) {
 		c = 255;
 	}
 	for (int i = 0; i < c; ++i) {
-		off += drawstring(rend, &numStrs[numidx(buf[i])], x + off, y, col);
+		off += numStrs[numidx(buf[i])].draw(rend, x + off, y, col);
 	}
 }
 
@@ -156,11 +160,11 @@ void drawfloatcen(SDL_Renderer *rend, float num, int x, int y, SDL_Color col) {
 		c = 255;
 	}
 	for (int i = 0; i < c; ++i) {
-		len += numStrs[numidx(buf[i])].sur->w;
+		len += numStrs[numidx(buf[i])].getWidth();
 	}
 	off = -len / 2;
 	for (int i = 0; i < c; ++i) {
-		off += drawstringcv(rend, &numStrs[numidx(buf[i])], x + off, y, col);
+		off += numStrs[numidx(buf[i])].drawcv(rend, x + off, y, col);
 	}
 }
 
@@ -356,7 +360,7 @@ struct Collisions {
 				continue;
 			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(c.rem) };
 			int o1 = measurenum(c.amt) / 2;
-			int o2 = drawstringcen(rend, &streakStr, c.p.x - o1, c.p.y, col);
+			int o2 = streakStr.drawcen(rend, c.p.x - o1, c.p.y, col);
 			drawnum(rend, c.amt, c.p.x - o1 + o2, c.p.y - 10, col);
 		}
 	}
@@ -625,7 +629,7 @@ void run(SDL_Renderer *rend, bool *running) {
 				255 });
 		}
 
-		highscorecount += delta * moved ? 90 : 300;
+		highscorecount += delta * (moved ? 90 : 300);
 		scorecount += delta * 90;
 		streakccount += delta * 90;
 		if (highscorecount > highscore)
@@ -696,7 +700,7 @@ int SDL_main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	loadstring(&streakStr, rend, "Streak! x");
+	streakStr.load(rend, "Streak! x");
 	initnums(rend);
 
 	bool running = true;
