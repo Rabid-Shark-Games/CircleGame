@@ -5,7 +5,7 @@ StaticString Str::upgrade("Get an upgrade");
 StaticString Str::level("Level ");
 StaticString Str::maxLevel("Maximum Level");
 StaticString Str::ropeUpgrade("Flight");
-StaticString Str::ropeUpgradeDesc("Increase the amount of time you can stay in the air.");
+StaticString Str::ropeUpgradeDesc("Increase the amount of time you can stay in the air while dragging.");
 StaticString Str::upgradeHint("Press 'B' to spend points on upgrades.");
 StaticString Str::exit("Close");
 

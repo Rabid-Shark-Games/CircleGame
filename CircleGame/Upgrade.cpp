@@ -69,6 +69,12 @@ static void drawGraphicLevel(SDL_Renderer *rend, int x, int y, int level, bool f
 	drawnum(rend, level, x + 64 - o1 + o2, y + 128 + 34, col);
 }
 
+static void drawGraphicDescription(SDL_Renderer *rend, int x, int y, RendString *str, Mouse m) {
+	if (!isMouseHovering(m, x, y))
+		return;
+	str->drawcen(rend, 400, 600 - 30 - 30, SDL_Color{ 255, 255, 255, 255 });
+}
+
 static bool ropeMax(const Upgrades &u) {
 	return u.ropemult <= 0.3f;
 }
@@ -95,6 +101,7 @@ void Upgrades::drawMenu(SDL_Renderer *rend, Mouse m, Score *s)
 	drawRopeGraphic(rend, menuCenX, menuCenY);
 	drawGraphicTitle(rend, menuCenX, menuCenY, &Str::ropeUpgrade, m, ropeCost(ropelvl), ropeAffordable);
 	drawGraphicLevel(rend, menuCenX, menuCenY, ropelvl, ropeMax(*this), m, ropeAffordable);
+	drawGraphicDescription(rend, menuCenX, menuCenY, &Str::ropeUpgradeDesc, m);
 
 	drawExitText(rend, m);
 }
