@@ -63,8 +63,17 @@ struct RendString {
 		return this->_sur->w;
 	}
 };
+struct StaticString : public RendString {
+	const char *_str;
 
-RendString streakStr;
+	StaticString(const char *str) : _str(str) {}
+
+	void load(SDL_Renderer *rend) {
+		this->RendString::load(rend, this->_str);
+	}
+};
+
+StaticString streakStr("Streak! x");
 
 RendString numStrs[13];
 void initnums(SDL_Renderer *rend) {
@@ -700,8 +709,8 @@ int SDL_main(int argc, char *argv[]) {
 		SDL_Log("Error: %s\n", SDL_GetError());
 		return 1;
 	}
-
-	streakStr.load(rend, "Streak! x");
+	
+	streakStr.load(rend);
 	initnums(rend);
 
 	bool running = true;
