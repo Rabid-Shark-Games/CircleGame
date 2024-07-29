@@ -18,8 +18,12 @@ void Score::tick(float delta, const Collisions &collisions)
 	}
 
 	if (streaktimerem <= 0) {
-		streakn = 0;
 		streakc = 0;
+		streakccount = 0;
+	}
+
+	if (!collisions.didDrawCollisions()) {
+		streakn = 0;
 	}
 }
 
@@ -96,7 +100,7 @@ void Score::draw(SDL_Renderer *rend)
 	int noff = drawnum(rend,
 		scorecount,
 		10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
-	if (streaktimerem > 0.0f) {
+	if (streakc > 0) {
 		noff += drawnumstr(rend, "+", 1, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 		drawnum(rend,
 			streakccount,
