@@ -2,17 +2,9 @@
 #include <SDL2/SDL_ttf.h>
 #include <vector>
 
-#define WALLS 0
-#define ROPE 1
 #define DEBUG_VEL 0
 #define DEBUG_VARS 0
-#if !ROPE
-#define INSANE_LOOP 1
-#endif
 #define DARK_MODE 1
-#define EXPLODING_ORBS 1
-#define STREAK_MULT 1
-#define SCORE_COUNTING 1
 
 TTF_Font *font;
 
@@ -263,11 +255,7 @@ struct Faller {
 	void animate(float delta) {
 		animtime += delta;
 		if (animtime >=
-#if EXPLODING_ORBS
 			0.3f
-#else
-			0.1f
-#endif
 			) {
 			respawn();
 		}
@@ -281,11 +269,7 @@ struct Faller {
 	}
 
 	void draw(SDL_Renderer *rend) const {
-#if EXPLODING_ORBS
 		drawocto2(rend, 5, x, y, animating ? animtime * animtime * 30 : 0);
-#else
-		drawocto(rend, animating ? 5 + animtime * animtime * 15 : 5, x, y);
-#endif
 	}
 
 	bool intersects(int px, int py) const {
@@ -309,7 +293,6 @@ struct Collisions {
 	std::vector<Collision> collisions;
 	std::vector<Collision> streaks;
 	bool diddraw = false;
-	int frameamt = 0;
 
 	void add_collision(SDL_Point p, int amt) {
 		for (Collision &c : collisions) {
@@ -361,13 +344,11 @@ struct Collisions {
 
 	void draw(SDL_Renderer *rend) {
 		diddraw = false;
-		frameamt = 0;
 		for (const Collision &c : collisions) {
 			if (c.rem <= 0)
 				continue;
 			drawnumcen(rend, c.amt, c.p.x, c.p.y, SDL_Color{0, 0, 255, getopac(c.rem)});
 			diddraw = true;
-			frameamt += c.amt;
 		}
 
 		for (const Collision &c : streaks) {
@@ -376,9 +357,7 @@ struct Collisions {
 			SDL_Color col = SDL_Color{ 128, 0, 255, getopac(c.rem) };
 			int o1 = measurenum(c.amt) / 2;
 			int o2 = drawstringcen(rend, &streakStr, c.p.x - o1, c.p.y, col);
-#if STREAK_MULT
 			drawnum(rend, c.amt, c.p.x - o1 + o2, c.p.y - 10, col);
-#endif
 		}
 	}
 };
@@ -412,9 +391,7 @@ void calcrope(float *px, float *py, float *vx, float *vy, int mx, int my, float 
 }
 
 float highscore = 0.0f;
-#if SCORE_COUNTING
 float highscorecount = 0.0f;
-#endif
 
 void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
@@ -429,23 +406,18 @@ void run(SDL_Renderer *rend, bool *running) {
 	float vy = 0;
 	bool moved = false;
 	float strength = 1;
-	float wallreimburse = 2.f / 3.f;
 	float score = 0.0f;
-#if SCORE_COUNTING
 	float scorecount = 0.0f;
 	float streakccount = 0.0f;
 	float streaktimerem = 0.0f;
-#endif
 	float timesincespawn = 0;
 	bool pb = false;
 	int streakn = 0;
 	int streakc = 0;
 	float timesinceshoot = time_until_shoot;
-#if ROPE
 	float mousedist = 0;
 	int gcx = 0;
 	int gcy = 0;
-#endif
 	std::vector<Faller> fallers;
 	constexpr int num_fallers = 8;
 	for (int i = 0; i < num_fallers; i++) {
@@ -476,11 +448,9 @@ void run(SDL_Renderer *rend, bool *running) {
 					mx = ev.button.x;
 					my = ev.button.y;
 					dragging = true;
-#if ROPE
 					gcx = mx;
 					gcy = my;
 					mousedist = sqrtf((mx - px) * (mx - px) + (my - py) * (my - py));
-#endif
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
@@ -504,7 +474,6 @@ void run(SDL_Renderer *rend, bool *running) {
 			timesinceshoot += delta;
 			vy += 200 * delta;
 			strength += 0.02f * delta;
-			wallreimburse -= 0.015f * delta;
 			if (score > highscore) {
 				pb = true;
 				highscore = score;
@@ -518,16 +487,12 @@ void run(SDL_Renderer *rend, bool *running) {
 				//fallers.push_back(f);
 			}
 
-#if SCORE_COUNTING
 			streaktimerem -= delta;
 			if (collisions.diddraw || streakc != streakccount) {
 				streaktimerem = 1.f;
 			}
 
 			if (streaktimerem <= 0) {
-#else
-			if (!collisions.diddraw) {
-#endif
 				streakn = 0;
 				streakc = 0;
 			}
@@ -536,43 +501,21 @@ void run(SDL_Renderer *rend, bool *running) {
 		px += vx * delta;
 		py += vy * delta;
 		
-		bool wall = false;
-#if WALLS
-		if (px <= 20) {
-			vx = 0;
-			px = 20;
-			wall = true;
-		}
-		if (px >= 800 - 20) {
-			vx = 0;
-			px = 800 - 20;
-			wall = true;
-		}
-#else
-#if ROPE || INSANE_LOOP
 		if (!dragging) {
-#endif
 			if (px < 0) {
 				px += 800;
 			}
 			if (px > 800) {
 				px -= 800;
 			}
-#if ROPE || INSANE_LOOP
 		}
-#endif
-#endif
-		if (wall && wallreimburse > 0)
-			py -= vy * delta * wallreimburse;
 		if (py < -20 || py > 600 + 20)
 			return;
 
-#if ROPE
 		if (moved && dragging) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
 			mousedist += delta * 80 * strength * (1 + sqrtf(streakn) / 4);
 		}
-#endif
 
 		if (moved) {
 			collisions.process(delta);
@@ -582,9 +525,7 @@ void run(SDL_Renderer *rend, bool *running) {
 				if (faller.intersects(px, py)) {
 					++streakn;
 					int s = 10
-#if STREAK_MULT
 						* (1 + streakn / 4)
-#endif
 						;
 					score += s;
 					streakc += s;
@@ -637,25 +578,19 @@ void run(SDL_Renderer *rend, bool *running) {
 
 		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 		drawocto(rend, 20, px, py);
-#if !WALLS
 		drawocto(rend, 20, px - 800, py);
 		drawocto(rend, 20, px + 800, py);
-#endif
 
-#if ROPE
 		if (moved && dragging) {
 			SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
 			drawocto(rend, 10, gcx, gcy);
+
 			SDL_RenderDrawLine(rend, px, py, gcx, gcy);
-			
-#if !WALLS
 			SDL_RenderDrawLine(rend, px - 800, py, gcx - 800, gcy);
 			SDL_RenderDrawLine(rend, px + 800, py, gcx + 800, gcy);
-#endif
 
 			SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 		}
-#endif
 
 #if DEBUG_VEL
 		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
@@ -673,10 +608,8 @@ void run(SDL_Renderer *rend, bool *running) {
 			}
 			else {
 				drawarrow(rend, px, py, mx, my, min_shoot_dist);
-#if !WALLS
 				drawarrow(rend, px - 800, py, mx - 800, my, min_shoot_dist * strength);
 				drawarrow(rend, px + 800, py, mx + 800, my, min_shoot_dist * strength);
-#endif
 			}
 		}
 
@@ -692,7 +625,6 @@ void run(SDL_Renderer *rend, bool *running) {
 				255 });
 		}
 
-#if SCORE_COUNTING
 		highscorecount += delta * moved ? 90 : 300;
 		scorecount += delta * 90;
 		streakccount += delta * 90;
@@ -702,46 +634,21 @@ void run(SDL_Renderer *rend, bool *running) {
 			scorecount = score;
 		if (streakccount > streakc)
 			streakccount = streakc;
-#endif
 
 		drawnum(rend,
-#if SCORE_COUNTING
 			highscorecount,
-#else
-			highscore,
-#endif
 			10, 10, SDL_Color{ 0, 255, 0, 255 });
 		int noff = drawnum(rend,
-#if SCORE_COUNTING
 			scorecount,
-#else
-			score,
-#endif
 			10, 30, pb ? SDL_Color{ 255, 128, 0, 255 } : SDL_Color{ 128, 128, 128, 255 });
-#if SCORE_COUNTING
 		if (streaktimerem > 0.0f) {
-#else
-		if (collisions.diddraw) {
-#endif
 			noff += drawnumstr(rend, "+", 1, 20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 			drawnum(rend,
-#if SCORE_COUNTING
 				streakccount,
-#else
-				streakc,
-#endif
 				20 + noff, 30, SDL_Color{ 128, 128, 255, 255 });
 		}
 #if DEBUG_VARS
 		drawfloat(rend, strength, 10, 50, SDL_Color{
-#if DARK_MODE
-			255, 255, 255,
-#else
-			0, 0, 0,
-#endif
-			255 });
-		if (wallreimburse > 0)
-			drawfloat(rend, wallreimburse, 10, 70, SDL_Color{
 #if DARK_MODE
 			255, 255, 255,
 #else
@@ -789,11 +696,7 @@ int SDL_main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	loadstring(&streakStr, rend, "Streak!"
-#if STREAK_MULT
-		" x"
-#endif
-	);
+	loadstring(&streakStr, rend, "Streak! x");
 	initnums(rend);
 
 	bool running = true;
