@@ -213,7 +213,7 @@ void drawocto(SDL_Renderer *rend, int r, int x, int y) {
 }
 
 constexpr float min_shoot_dist = 150;
-constexpr float time_until_shoot = 0.6f;
+constexpr float time_until_shoot = 0.25f;
 
 void shoot(float *vx, float *vy, int px, int py, int mx, int my, float strength) {
 	float dx = mx - px;
@@ -516,7 +516,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		if (py < -20 || py > 600 + 20)
 			return;
 
-		if (moved && dragging) {
+		if (moved && dragging && timesinceshoot >= time_until_shoot) {
 			calcrope(&px, &py, &vx, &vy, gcx, gcy, mousedist);
 			mousedist += delta * 80 * strength * (1 + sqrtf(streakn) / 4);
 		}
@@ -586,7 +586,7 @@ void run(SDL_Renderer *rend, bool *running) {
 		drawocto(rend, 20, px + 800, py);
 
 		if (moved && dragging) {
-			SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+			SDL_SetRenderDrawColor(rend, 0, 0, timesinceshoot < time_until_shoot ? 128 : 255, 255);
 			drawocto(rend, 10, gcx, gcy);
 
 			SDL_RenderDrawLine(rend, px, py, gcx, gcy);
@@ -609,6 +609,7 @@ void run(SDL_Renderer *rend, bool *running) {
 			if (timesinceshoot < time_until_shoot) {
 				SDL_SetRenderDrawColor(rend, 128, 0, 0, 255);
 				SDL_RenderDrawLine(rend, px, py, mx, my);
+				mousedist = sqrtf((mx - px) * (mx - px) + (my - py) * (my - py));
 			}
 			else {
 				drawarrow(rend, px, py, mx, my, min_shoot_dist);
