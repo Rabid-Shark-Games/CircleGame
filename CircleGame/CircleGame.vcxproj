@@ -139,6 +139,7 @@
     <ClCompile Include="CircleGame.cpp" />
     <ClCompile Include="Collisions.cpp" />
     <ClCompile Include="DrawUtil.cpp" />
+    <ClCompile Include="Faller.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="NumberStrings.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -151,6 +152,7 @@
     <ClInclude Include="Collisions.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="DrawUtil.h" />
+    <ClInclude Include="Faller.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="NumberStrings.h" />
     <ClInclude Include="Player.h" />
