@@ -13,7 +13,45 @@
 #include "DrawUtil.h"
 #include "Faller.h"
 
-void run(SDL_Renderer *rend, bool *running) {
+static void setbgcolor(SDL_Renderer *rend, Player *p, Score *s) {
+	if (p->py < 255) {
+		int dark = p->py;
+		dark += 128;
+		if (dark > 255)
+			dark = 255;
+#if DARK_MODE
+		dark = 255 - dark;
+		dark += s->streakDarkness();
+#else
+		dark -= s->streakDarkness();
+#endif
+		SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
+	}
+	else if (p->py > 600 - 255) {
+		int dark = 255 + 600 - p->py;
+		dark += 128;
+		if (dark > 255)
+			dark = 255;
+#if DARK_MODE
+		dark = 255 - dark;
+		dark += s->streakDarkness();
+#else
+		dark -= s->streakDarkness();
+#endif
+		SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
+	}
+	else {
+		int dark = 255 - s->streakDarkness();
+		if (dark < 0)
+			dark = 0;
+#if DARK_MODE
+		dark = 255 - dark;
+#endif
+		SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
+	}
+}
+
+static void run(SDL_Renderer *rend, bool *running) {
 	SDL_Event ev;
 	srand(8213);
 	Timer t;
@@ -69,41 +107,7 @@ void run(SDL_Renderer *rend, bool *running) {
 			fallers.process(t.getDelta(), p.px, p.py, &s, &collisions);
 		}
 
-		if (p.py < 255) {
-			int dark = p.py;
-			dark += 128;
-			if (dark > 255)
-				dark = 255;
-#if DARK_MODE
-			dark = 255 - dark;
-			dark += s.streakDarkness();
-#else
-			dark -= s.streakDarkness();
-#endif
-			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
-		}
-		else if (p.py > 600 - 255) {
-			int dark = 255 + 600 - p.py;
-			dark += 128;
-			if (dark > 255)
-				dark = 255;
-#if DARK_MODE
-			dark = 255 - dark;
-			dark += s.streakDarkness();
-#else
-			dark -= s.streakDarkness();
-#endif
-			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
-		}
-		else {
-			int dark = 255 - s.streakDarkness();
-			if (dark < 0)
-				dark = 0;
-#if DARK_MODE
-			dark = 255 - dark;
-#endif
-			SDL_SetRenderDrawColor(rend, dark, dark, dark, 255);
-		}
+		setbgcolor(rend, &p, &s);
 		SDL_RenderClear(rend);
 
 		fallers.draw(rend);
